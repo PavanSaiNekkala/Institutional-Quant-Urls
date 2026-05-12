@@ -125,7 +125,6 @@ try:
         '''
         SELECT *
         FROM enriched_stocks
-        LIMIT 500
         '''
     ).df()
 
