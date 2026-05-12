@@ -44,6 +44,181 @@ st.set_page_config(
 ENABLE_LIVE_MARKET = False
 
 # =========================================================
+# SECTOR NORMALIZATION ENGINE
+# =========================================================
+
+def normalize_sector(sector):
+
+    if pd.isna(sector):
+
+        return "Other"
+
+    sector = str(sector).strip().lower()
+
+    sector_mapping = {
+
+        # =============================================
+        # TECHNOLOGY
+        # =============================================
+
+        "it services": "Technology",
+
+        "software": "Technology",
+
+        "information technology": "Technology",
+
+        "tech": "Technology",
+
+        "digital": "Technology",
+
+        "saas": "Technology",
+
+        # =============================================
+        # BANKING & FINANCE
+        # =============================================
+
+        "banks": "Banking",
+
+        "banking": "Banking",
+
+        "financial services": "Financial Services",
+
+        "finance": "Financial Services",
+
+        "nbfc": "Financial Services",
+
+        "insurance": "Financial Services",
+
+        "asset management": "Financial Services",
+
+        # =============================================
+        # PHARMA & HEALTHCARE
+        # =============================================
+
+        "pharmaceuticals": "Healthcare",
+
+        "pharma": "Healthcare",
+
+        "healthcare": "Healthcare",
+
+        "biotech": "Healthcare",
+
+        "hospital": "Healthcare",
+
+        # =============================================
+        # ENERGY
+        # =============================================
+
+        "oil & gas": "Energy",
+
+        "oil": "Energy",
+
+        "gas": "Energy",
+
+        "power": "Energy",
+
+        "renewable energy": "Energy",
+
+        "energy": "Energy",
+
+        # =============================================
+        # FMCG & CONSUMER
+        # =============================================
+
+        "fmcg": "Consumer",
+
+        "consumer goods": "Consumer",
+
+        "consumer staples": "Consumer",
+
+        "retail": "Consumer",
+
+        "food products": "Consumer",
+
+        "beverages": "Consumer",
+
+        # =============================================
+        # AUTO
+        # =============================================
+
+        "automobile": "Automobile",
+
+        "auto": "Automobile",
+
+        "auto ancillaries": "Automobile",
+
+        "automotive": "Automobile",
+
+        # =============================================
+        # INDUSTRIALS
+        # =============================================
+
+        "capital goods": "Industrials",
+
+        "industrial manufacturing": "Industrials",
+
+        "engineering": "Industrials",
+
+        "infrastructure": "Industrials",
+
+        "construction": "Industrials",
+
+        # =============================================
+        # METALS & MATERIALS
+        # =============================================
+
+        "metals": "Metals & Mining",
+
+        "mining": "Metals & Mining",
+
+        "steel": "Metals & Mining",
+
+        "cement": "Materials",
+
+        "chemicals": "Chemicals",
+
+        # =============================================
+        # TELECOM
+        # =============================================
+
+        "telecom": "Telecommunication",
+
+        "telecommunications": "Telecommunication",
+
+        # =============================================
+        # MEDIA
+        # =============================================
+
+        "media": "Media",
+
+        "entertainment": "Media",
+
+        # =============================================
+        # REAL ESTATE
+        # =============================================
+
+        "real estate": "Real Estate",
+
+        "realty": "Real Estate",
+
+        # =============================================
+        # TEXTILES
+        # =============================================
+
+        "textiles": "Textiles",
+
+        "apparel": "Textiles"
+    }
+
+    for key, value in sector_mapping.items():
+
+        if key in sector:
+
+            return value
+
+    return "Other"
+
+# =========================================================
 # PATHS
 # =========================================================
 
@@ -195,6 +370,22 @@ for column in numeric_columns:
 
             errors="coerce"
         )
+
+# =========================================================
+# SECTOR NORMALIZATION
+# =========================================================
+
+if "Sector" in df.columns:
+
+    df["Sector"] = df[
+        "Sector"
+    ].apply(
+        normalize_sector
+    )
+
+else:
+
+    df["Sector"] = "Other"
 
 # =========================================================
 # LIVE MARKET DATA
