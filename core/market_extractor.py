@@ -1,36 +1,23 @@
-import yfinance as yf
-import numpy as np
+from core.multi_source_market_engine import (
+    fetch_market_data
+)
 
-def extract_market_data(symbol):
+# =========================================================
+# MARKET EXTRACTOR
+# =========================================================
+
+def extract_market_data(ticker):
 
     try:
 
-        ticker = yf.Ticker(symbol)
+        symbol = ticker.ticker
 
-        fast = ticker.fast_info
+        market_data = fetch_market_data(
+            symbol
+        )
 
-        return {
+        return market_data
 
-            "Current Price": fast.get("lastPrice", np.nan),
+    except:
 
-            "Market Cap": fast.get("marketCap", np.nan),
-
-            "Day High": fast.get("dayHigh", np.nan),
-
-            "Day Low": fast.get("dayLow", np.nan),
-
-            "52W High": fast.get("yearHigh", np.nan),
-
-            "52W Low": fast.get("yearLow", np.nan),
-
-            "Volume": fast.get("lastVolume", np.nan),
-
-            "Avg Volume": fast.get("tenDayAverageVolume", np.nan)
-
-        }
-
-    except Exception as e:
-
-        return {
-            "Market Error": str(e)
-        }
+        return {}

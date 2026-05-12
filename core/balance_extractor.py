@@ -1,9 +1,6 @@
-import yfinance as yf
 import numpy as np
 
-def extract_balance_sheet(symbol):
-
-    ticker = yf.Ticker(symbol)
+def extract_balance_sheet(ticker):
 
     balance = ticker.balance_sheet
 

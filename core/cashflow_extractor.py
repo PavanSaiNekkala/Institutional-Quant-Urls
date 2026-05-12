@@ -1,9 +1,6 @@
-import yfinance as yf
 import numpy as np
 
-def extract_cashflow(symbol):
-
-    ticker = yf.Ticker(symbol)
+def extract_cashflow(ticker):
 
     cashflow = ticker.cashflow
 

@@ -1,10 +1,6 @@
-import yfinance as yf
-import pandas as pd
 import ta
 
-def calculate_indicators(symbol):
-
-    ticker = yf.Ticker(symbol)
+def calculate_indicators(ticker):
 
     hist = ticker.history(period="1y")
 

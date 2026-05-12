@@ -1,9 +1,6 @@
-import yfinance as yf
 import numpy as np
 
-def extract_financials(symbol):
-
-    ticker = yf.Ticker(symbol)
+def extract_financials(ticker):
 
     financials = ticker.financials
 
