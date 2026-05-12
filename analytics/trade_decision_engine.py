@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 
 # =========================================================
-# SAFE VALUE
+# SAFE NUMERIC
 # =========================================================
 
 def safe_numeric(series):
@@ -15,6 +15,75 @@ def safe_numeric(series):
         series,
         errors="coerce"
     ).fillna(0)
+
+# =========================================================
+# MARKET REGIME ENGINE
+# =========================================================
+
+def calculate_market_regime(df):
+
+    avg_inst = df[
+        "Institutional Score"
+    ].mean()
+
+    avg_alpha = df[
+        "Alpha Score"
+    ].mean()
+
+    avg_rsi = df[
+        "RSI"
+    ].mean()
+
+    avg_adx = df[
+        "ADX"
+    ].mean()
+
+    avg_buy_prob = df[
+        "Buy Probability"
+    ].mean()
+
+    regime_score = (
+
+        avg_inst * 0.30
+
+        +
+
+        avg_alpha * 0.25
+
+        +
+
+        avg_buy_prob * 0.25
+
+        +
+
+        avg_rsi * 0.10
+
+        +
+
+        avg_adx * 0.10
+    )
+
+    # =====================================================
+    # REGIME CLASSIFICATION
+    # =====================================================
+
+    if regime_score >= 80:
+
+        return "🚀 Strong Bullish"
+
+    elif regime_score >= 65:
+
+        return "📈 Bullish"
+
+    elif regime_score >= 50:
+
+        return "⚖️ Neutral"
+
+    elif regime_score >= 35:
+
+        return "📉 Bearish"
+
+    return "🩸 Strong Bearish"
 
 # =========================================================
 # BUILD TRADE DECISIONS
@@ -38,7 +107,9 @@ def build_trade_decisions(df):
 
         "RSI",
 
-        "ADX"
+        "ADX",
+
+        "Current Price"
     ]
 
     for column in numeric_columns:
@@ -126,10 +197,6 @@ def build_trade_decisions(df):
     # =====================================================
     # TARGET PRICE
     # =====================================================
-
-    if "Current Price" not in df.columns:
-
-        df["Current Price"] = 0
 
     df["Target Price"] = (
 
