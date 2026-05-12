@@ -363,7 +363,7 @@ st.markdown("---")
 # =========================================================
 
 st.subheader(
-    "Institutional Trade Signals"
+    "Top 50 Institutional Trade Signals"
 )
 
 priority_columns = [
@@ -425,11 +425,17 @@ priority_df = priority_df.drop(
     columns=["Signal Rank"]
 )
 
+# =========================================================
+# TOP 50 OUTPUT
+# =========================================================
+
 st.dataframe(
 
-    priority_df.head(25),
+    priority_df.head(50),
 
-    use_container_width=True
+    use_container_width=True,
+
+    height=700
 )
 
 st.markdown("---")
