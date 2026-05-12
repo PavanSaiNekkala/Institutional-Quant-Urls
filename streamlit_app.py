@@ -303,7 +303,6 @@ try:
         '''
         SELECT *
         FROM enriched_stocks
-        LIMIT 2000
         '''
     ).df()
 
