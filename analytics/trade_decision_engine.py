@@ -6,6 +6,8 @@ import pandas as pd
 import numpy as np
 import yfinance as yf
 
+from functools import lru_cache
+
 # =========================================================
 # SAFE NUMERIC
 # =========================================================
@@ -21,7 +23,9 @@ def safe_numeric(series):
 # BULK LIVE MARKET FETCHER
 # =========================================================
 
-def bulk_fetch_market_data(symbols):
+@lru_cache(maxsize=10)
+
+def bulk_fetch_market_data(symbols_tuple):
 
     try:
 
@@ -33,7 +37,7 @@ def bulk_fetch_market_data(symbols):
 
             str(symbol).strip()
 
-            for symbol in symbols
+            for symbol in list(symbols_tuple)
 
             if pd.notna(symbol)
         ]
@@ -44,7 +48,7 @@ def bulk_fetch_market_data(symbols):
         # LIMIT LIVE FETCHES
         # =================================================
 
-        symbols = symbols[:200]
+        symbols = symbols[:50]
 
         # =================================================
         # BULK DOWNLOAD
@@ -69,8 +73,10 @@ def bulk_fetch_market_data(symbols):
 
         live_data = {}
 
+        invalid_symbols = []
+
         # =================================================
-        # PROCESS EACH SYMBOL
+        # PROCESS SYMBOLS
         # =================================================
 
         for symbol in symbols:
@@ -79,11 +85,19 @@ def bulk_fetch_market_data(symbols):
 
                 if symbol not in data:
 
+                    invalid_symbols.append(
+                        symbol
+                    )
+
                     continue
 
                 stock_data = data[symbol]
 
                 if stock_data.empty:
+
+                    invalid_symbols.append(
+                        symbol
+                    )
 
                     continue
 
@@ -209,7 +223,15 @@ def bulk_fetch_market_data(symbols):
 
             except:
 
+                invalid_symbols.append(
+                    symbol
+                )
+
                 continue
+
+        print(
+            f"Invalid Symbols: {invalid_symbols[:10]}"
+        )
 
         return live_data
 
@@ -308,7 +330,9 @@ def build_trade_decisions(df):
 
         "RSI",
 
-        "ADX"
+        "ADX",
+
+        "Current Price"
     ]
 
     for column in numeric_columns:
@@ -322,6 +346,18 @@ def build_trade_decisions(df):
         else:
 
             df[column] = 0
+
+    # =====================================================
+    # PRESERVE DATABASE PRICES
+    # =====================================================
+
+    original_prices = None
+
+    if "Current Price" in df.columns:
+
+        original_prices = df[
+            "Current Price"
+        ].copy()
 
     # =====================================================
     # SYMBOLS
@@ -342,7 +378,7 @@ def build_trade_decisions(df):
     # =====================================================
 
     live_market_data = bulk_fetch_market_data(
-        symbols
+        tuple(symbols)
     )
 
     # =====================================================
@@ -399,10 +435,35 @@ def build_trade_decisions(df):
         )
 
     # =====================================================
-    # ASSIGN LIVE DATA
+    # LIVE DATA
     # =====================================================
 
-    df["Current Price"] = current_prices
+    df["Live Price"] = current_prices
+
+    # =====================================================
+    # FALLBACK PRICE LOGIC
+    # =====================================================
+
+    if original_prices is not None:
+
+        df["Current Price"] = np.where(
+
+            df["Live Price"] > 0,
+
+            df["Live Price"],
+
+            original_prices
+        )
+
+    else:
+
+        df["Current Price"] = df[
+            "Live Price"
+        ]
+
+    # =====================================================
+    # OTHER LIVE METRICS
+    # =====================================================
 
     df["5D Return"] = ret_5d_list
 
@@ -616,12 +677,13 @@ def build_trade_decisions(df):
     )
 
     # =====================================================
-    # REMOVE INVALID PRICES
+    # SAFE FILTER
     # =====================================================
 
-    df = df[
-        df["Current Price"] > 0
-    ]
+    df = df.dropna(
+
+        subset=["Current Price"]
+    )
 
     # =====================================================
     # SORTING
