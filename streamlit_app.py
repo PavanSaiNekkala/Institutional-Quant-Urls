@@ -620,97 +620,64 @@ strong_buys = len(
 
 col1, col2, col3, col4 = st.columns(4)
 
-with col1:
+kpi_data = [
 
-    st.markdown(
-        f"""
-        <div class="kpi-card">
+    (
+        "Live Stocks",
+        len(filtered_df),
+        "Active Universe"
+    ),
 
-            <div class="kpi-title">
-                Live Stocks
-            </div>
+    (
+        "Avg Institutional Score",
+        avg_score,
+        "Institutional Strength"
+    ),
 
-            <div class="kpi-value">
-                {len(filtered_df)}
-            </div>
+    (
+        "Strong Buys",
+        strong_buys,
+        "High Conviction Signals"
+    ),
 
-            <div class="kpi-sub">
-                Active Universe
-            </div>
-
-        </div>
-        """,
-        unsafe_allow_html=True
+    (
+        "Avg Confidence",
+        avg_confidence,
+        "Model Confidence"
     )
+]
 
-with col2:
+for col, data in zip(
 
-    st.markdown(
-        f"""
-        <div class="kpi-card">
+    [col1, col2, col3, col4],
 
-            <div class="kpi-title">
-                Avg Institutional Score
+    kpi_data
+):
+
+    title, value, subtitle = data
+
+    with col:
+
+        st.markdown(
+            f"""
+            <div class="kpi-card">
+
+                <div class="kpi-title">
+                    {title}
+                </div>
+
+                <div class="kpi-value">
+                    {value}
+                </div>
+
+                <div class="kpi-sub">
+                    {subtitle}
+                </div>
+
             </div>
-
-            <div class="kpi-value">
-                {avg_score}
-            </div>
-
-            <div class="kpi-sub">
-                Institutional Strength
-            </div>
-
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-with col3:
-
-    st.markdown(
-        f"""
-        <div class="kpi-card">
-
-            <div class="kpi-title">
-                Strong Buys
-            </div>
-
-            <div class="kpi-value">
-                {strong_buys}
-            </div>
-
-            <div class="kpi-sub">
-                High Conviction Signals
-            </div>
-
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-with col4:
-
-    st.markdown(
-        f"""
-        <div class="kpi-card">
-
-            <div class="kpi-title">
-                Avg Confidence
-            </div>
-
-            <div class="kpi-value">
-                {avg_confidence}
-            </div>
-
-            <div class="kpi-sub">
-                Model Confidence
-            </div>
-
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+            """,
+            unsafe_allow_html=True
+        )
 
 # =========================================================
 # TABLE DATA
@@ -730,6 +697,8 @@ display_columns = [
 
     "Stock",
 
+    "Sector",
+
     "Trade Signal",
 
     "Current Price",
@@ -739,14 +708,6 @@ display_columns = [
     "Stoploss",
 
     "Confidence",
-
-    "Momentum Score",
-
-    "Volume Score",
-
-    "5D Return",
-
-    "20D Return",
 
     "Composite Score"
 ]
@@ -790,9 +751,37 @@ with right_col:
         unsafe_allow_html=True
     )
 
-    top_sector = filtered_df[
-        "Sector"
-    ].mode()[0]
+    # =====================================================
+    # SAFE TOP SECTOR
+    # =====================================================
+
+    if "Sector" in filtered_df.columns:
+
+        sector_series = (
+
+            filtered_df["Sector"]
+
+            .dropna()
+
+            .astype(str)
+        )
+
+        if not sector_series.empty:
+
+            top_sector = (
+
+                sector_series
+                .mode()
+                .iloc[0]
+            )
+
+        else:
+
+            top_sector = "Unknown"
+
+    else:
+
+        top_sector = "Unknown"
 
     st.info(
         f"""
