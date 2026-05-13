@@ -4,10 +4,8 @@
 
 import pandas as pd
 import time
-import traceback
 import yfinance as yf
 import multiprocessing
-import duckdb
 
 from concurrent.futures import (
     ThreadPoolExecutor,
@@ -17,39 +15,15 @@ from concurrent.futures import (
 from pathlib import Path
 
 from utils.symbol_validator import validate_symbol
-
 from utils.retry_engine import retry_request
-
-from utils.cache_manager import (
-    load_cache,
-    save_cache
-)
-
 from utils.db_manager import get_connection
+from utils.sector_mapper import get_sector_data
+from utils.failure_handler import categorize_failure
 
-from utils.sector_mapper import (
-    get_sector_data
-)
-
-from utils.failure_handler import (
-    categorize_failure
-)
-
-from core.market_extractor import (
-    extract_market_data
-)
-
-from core.financial_extractor import (
-    extract_financials
-)
-
-from core.balance_extractor import (
-    extract_balance_sheet
-)
-
-from core.cashflow_extractor import (
-    extract_cashflow
-)
+from core.market_extractor import extract_market_data
+from core.financial_extractor import extract_financials
+from core.balance_extractor import extract_balance_sheet
+from core.cashflow_extractor import extract_cashflow
 
 from technicals.indicator_engine import (
     calculate_indicators
@@ -111,11 +85,6 @@ OUTPUT_DIR = (
     / "output"
 )
 
-CACHE_DIR = (
-    BASE_DIR
-    / "cache"
-)
-
 DATABASE_DIR = (
     BASE_DIR
     / "database"
@@ -131,10 +100,6 @@ LOG_DIR = (
 # =========================================================
 
 OUTPUT_DIR.mkdir(
-    exist_ok=True
-)
-
-CACHE_DIR.mkdir(
     exist_ok=True
 )
 
@@ -155,11 +120,6 @@ OUTPUT_FILE = (
     / "enriched_stock_data.xlsx"
 )
 
-TEMP_PARQUET = (
-    OUTPUT_DIR
-    / "temp_results.parquet"
-)
-
 PORTFOLIO_FILE = (
     OUTPUT_DIR
     / "institutional_portfolio.xlsx"
@@ -173,11 +133,6 @@ BACKTEST_FILE = (
 FAILED_FILE = (
     OUTPUT_DIR
     / "failed_symbols.xlsx"
-)
-
-DB_FILE = (
-    DATABASE_DIR
-    / "institutional_quant.db"
 )
 
 # =========================================================
@@ -197,7 +152,7 @@ df = pd.read_excel(
 )
 
 # =========================================================
-# CLEAN INPUT STOCKS
+# CLEAN STOCK SYMBOLS
 # =========================================================
 
 df["Stock"] = (
@@ -220,7 +175,7 @@ df = df.drop_duplicates(
 )
 
 # =========================================================
-# REMOVE EMPTY STOCKS
+# REMOVE EMPTY VALUES
 # =========================================================
 
 df = df[
@@ -255,29 +210,7 @@ print(
 )
 
 # =========================================================
-# LOAD CACHE
-# =========================================================
-
-cache_df = load_cache()
-
-processed_symbols = set()
-
-if not cache_df.empty:
-
-    processed_symbols = set(
-
-        cache_df[
-            "Stock"
-        ].astype(str)
-    )
-
-print(
-    f"Cached Stocks : "
-    f"{len(processed_symbols)}"
-)
-
-# =========================================================
-# DATABASE
+# DATABASE CONNECTION
 # =========================================================
 
 conn = get_connection()
@@ -295,8 +228,6 @@ failed = []
 success_count = 0
 
 failure_count = 0
-
-skipped_count = 0
 
 # =========================================================
 # CHUNK GENERATOR
@@ -336,7 +267,7 @@ def process_stock(row):
         )
 
         # =================================================
-        # VALIDATION
+        # VALIDATE SYMBOL
         # =================================================
 
         validation = validate_symbol(
@@ -360,7 +291,7 @@ def process_stock(row):
         symbol = validation["symbol"]
 
         # =================================================
-        # TICKER
+        # YFINANCE TICKER
         # =================================================
 
         ticker = retry_request(
@@ -368,7 +299,7 @@ def process_stock(row):
         )
 
         # =================================================
-        # EXTRACTION
+        # DATA EXTRACTION
         # =================================================
 
         market_data = extract_market_data(
@@ -413,7 +344,7 @@ def process_stock(row):
         }
 
         # =================================================
-        # AI SCORE
+        # AI SCORES
         # =================================================
 
         ai_scores = calculate_institutional_score(
@@ -421,7 +352,7 @@ def process_stock(row):
         )
 
         # =================================================
-        # QUANT SCORE
+        # QUANT SCORES
         # =================================================
 
         quant_scores = calculate_quant_scores(
@@ -577,28 +508,10 @@ for batch_num, batch_df in enumerate(
 
                     "Stock": "UNKNOWN",
 
-                    "Reason":
-                    "THREAD_ERROR",
+                    "Reason": "THREAD_ERROR",
 
                     "Error": str(e)
                 })
-
-    # =====================================================
-    # TEMP SAVE
-    # =====================================================
-
-    temp_df = pd.DataFrame(
-        results
-    )
-
-    temp_df.to_parquet(
-        TEMP_PARQUET
-    )
-
-    print(
-        f"Emergency Save Complete : "
-        f"{TEMP_PARQUET}"
-    )
 
     print(
         f"Sleeping {BATCH_SLEEP} sec..."
@@ -621,18 +534,12 @@ failed_df = pd.DataFrame(
 )
 
 # =========================================================
-# CLEAN FINAL DATA
-# =========================================================
-
-final_cache_df = results_df.copy()
-
-# =========================================================
 # REMOVE DUPLICATES
 # =========================================================
 
-final_cache_df = (
+final_df = (
 
-    final_cache_df
+    results_df
 
     .drop_duplicates(
         subset=["Stock"]
@@ -643,7 +550,7 @@ final_cache_df = (
 
 print(
     f"Final Unique Stocks : "
-    f"{final_cache_df['Stock'].nunique()}"
+    f"{final_df['Stock'].nunique()}"
 )
 
 # =========================================================
@@ -655,7 +562,7 @@ print("TRAINING ML MODEL...")
 print("=" * 60)
 
 ml_model, ml_accuracy = train_ml_model(
-    final_cache_df
+    final_df
 )
 
 print(
@@ -665,11 +572,11 @@ print(
 
 if ml_model is not None:
 
-    final_cache_df = generate_predictions(
+    final_df = generate_predictions(
 
         ml_model,
 
-        final_cache_df
+        final_df
     )
 
 # =========================================================
@@ -677,7 +584,7 @@ if ml_model is not None:
 # =========================================================
 
 portfolio_df = build_portfolio(
-    final_cache_df
+    final_df
 )
 
 # =========================================================
@@ -705,17 +612,17 @@ print("=" * 60)
 # =========================================================
 
 conn.execute(
-    '''
+    """
     DROP TABLE IF EXISTS
     enriched_stocks
-    '''
+    """
 )
 
 conn.execute(
-    '''
+    """
     DROP TABLE IF EXISTS
     institutional_portfolio
-    '''
+    """
 )
 
 # =========================================================
@@ -723,18 +630,18 @@ conn.execute(
 # =========================================================
 
 conn.register(
-    "final_cache_df",
-    final_cache_df
+    "final_df",
+    final_df
 )
 
 conn.execute(
-    '''
+    """
     CREATE TABLE
     enriched_stocks AS
 
     SELECT *
-    FROM final_cache_df
-    '''
+    FROM final_df
+    """
 )
 
 # =========================================================
@@ -747,13 +654,13 @@ conn.register(
 )
 
 conn.execute(
-    '''
+    """
     CREATE TABLE
     institutional_portfolio AS
 
     SELECT *
     FROM portfolio_df
-    '''
+    """
 )
 
 # =========================================================
@@ -821,7 +728,7 @@ with pd.ExcelWriter(
 
 ) as writer:
 
-    final_cache_df.to_excel(
+    final_df.to_excel(
 
         writer,
 
@@ -840,15 +747,7 @@ with pd.ExcelWriter(
     )
 
 # =========================================================
-# SAVE CACHE
-# =========================================================
-
-save_cache(
-    final_cache_df
-)
-
-# =========================================================
-# CLOSE DB
+# CLOSE DATABASE
 # =========================================================
 
 conn.close()
@@ -868,7 +767,7 @@ print("PROCESS COMPLETED")
 
 print(
     f"Successful Stocks : "
-    f"{len(results_df)}"
+    f"{len(final_df)}"
 )
 
 print(
