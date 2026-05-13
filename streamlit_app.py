@@ -1,5 +1,6 @@
 # =========================================================
 # INSTITUTIONAL - QUANT - URLS
+# POWER BI STYLE DASHBOARD
 # =========================================================
 
 # =========================================================
@@ -36,7 +37,7 @@ st.set_page_config(
 )
 
 # =========================================================
-# CUSTOM CSS
+# POWER BI STYLE CSS
 # =========================================================
 
 st.markdown(
@@ -44,32 +45,66 @@ st.markdown(
     <style>
 
     .stApp {
-        background-color: #0b1220;
-        color: #f3f4f6;
+
+        background-color: #f3f4f6;
+
+        color: #111827;
     }
 
     .main .block-container {
-        padding-top: 1.5rem;
+
+        max-width: 1450px;
+
+        padding-top: 1rem;
+
         padding-bottom: 1rem;
-        max-width: 1400px;
     }
+
+    /* =====================================================
+       SIDEBAR
+    ===================================================== */
 
     section[data-testid="stSidebar"] {
 
-        background-color: #111827;
-        border-right: 1px solid #1f2937;
+        background-color: #ffffff;
+
+        border-right: 1px solid #d1d5db;
     }
 
     section[data-testid="stSidebar"] * {
 
-        color: #f3f4f6;
+        color: #111827;
+    }
+
+    /* =====================================================
+       HEADER
+    ===================================================== */
+
+    .dashboard-header {
+
+        background: linear-gradient(
+            90deg,
+            #2563eb,
+            #1d4ed8
+        );
+
+        padding: 24px;
+
+        border-radius: 18px;
+
+        margin-bottom: 20px;
+
+        color: white;
+
+        box-shadow:
+            0 6px 18px rgba(0,0,0,0.12);
     }
 
     .dashboard-title {
 
-        font-size: 46px;
+        font-size: 42px;
+
         font-weight: 800;
-        color: white;
 
         margin-bottom: 0px;
     }
@@ -77,91 +112,123 @@ st.markdown(
     .dashboard-subtitle {
 
         font-size: 16px;
-        color: #9ca3af;
 
-        margin-top: -10px;
-        margin-bottom: 25px;
+        opacity: 0.92;
     }
+
+    /* =====================================================
+       KPI CARDS
+    ===================================================== */
+
+    .kpi-card {
+
+        background-color: white;
+
+        padding: 22px;
+
+        border-radius: 18px;
+
+        border-left: 6px solid #2563eb;
+
+        box-shadow:
+            0 3px 12px rgba(0,0,0,0.08);
+
+        margin-bottom: 10px;
+    }
+
+    .kpi-title {
+
+        font-size: 14px;
+
+        color: #6b7280;
+
+        margin-bottom: 10px;
+    }
+
+    .kpi-value {
+
+        font-size: 34px;
+
+        font-weight: 800;
+
+        color: #111827;
+    }
+
+    .kpi-sub {
+
+        font-size: 13px;
+
+        color: #10b981;
+
+        margin-top: 6px;
+    }
+
+    /* =====================================================
+       SECTION TITLES
+    ===================================================== */
 
     .section-title {
 
         font-size: 28px;
+
         font-weight: 700;
 
-        color: white;
+        color: #111827;
 
-        margin-top: 10px;
-        margin-bottom: 10px;
+        margin-top: 18px;
+
+        margin-bottom: 12px;
     }
 
-    div[data-testid="metric-container"] {
+    /* =====================================================
+       STATUS CARD
+    ===================================================== */
 
-        background: linear-gradient(
-            145deg,
-            #111827,
-            #1f2937
-        );
+    .status-card {
 
-        border: 1px solid #374151;
+        background-color: white;
 
-        padding: 14px;
+        padding: 20px;
 
-        border-radius: 16px;
+        border-radius: 18px;
 
         box-shadow:
-            0 4px 15px rgba(0,0,0,0.15);
+            0 3px 12px rgba(0,0,0,0.08);
+
+        margin-bottom: 15px;
     }
 
-    .status-box {
-
-        background: #111827;
-
-        border: 1px solid #1f2937;
-
-        padding: 18px;
-
-        border-radius: 16px;
-
-        margin-bottom: 18px;
-    }
-
-    .live-box {
-
-        background-color: rgba(16,185,129,0.12);
-
-        border: 1px solid #10b981;
-
-        color: #10b981;
-
-        padding: 16px;
-
-        border-radius: 14px;
-
-        font-weight: 600;
-    }
-
-    .closed-box {
-
-        background-color: rgba(239,68,68,0.12);
-
-        border: 1px solid #ef4444;
-
-        color: #ef4444;
-
-        padding: 16px;
-
-        border-radius: 14px;
-
-        font-weight: 600;
-    }
+    /* =====================================================
+       TABLES
+    ===================================================== */
 
     .stDataFrame {
 
-        border-radius: 14px;
+        border-radius: 16px;
 
         overflow: hidden;
 
-        border: 1px solid #1f2937;
+        border: 1px solid #e5e7eb;
+
+        background-color: white;
+    }
+
+    /* =====================================================
+       METRICS
+    ===================================================== */
+
+    div[data-testid="metric-container"] {
+
+        background-color: white;
+
+        border-radius: 16px;
+
+        padding: 14px;
+
+        border: 1px solid #e5e7eb;
+
+        box-shadow:
+            0 3px 12px rgba(0,0,0,0.06);
     }
 
     </style>
@@ -229,22 +296,10 @@ DB_FILE = (
     / "institutional_quant.db"
 )
 
-try:
-
-    conn = duckdb.connect(
-
-        str(DB_FILE),
-
-        read_only=True
-    )
-
-except Exception as e:
-
-    st.error(
-        f"Database Connection Failed: {e}"
-    )
-
-    st.stop()
+conn = duckdb.connect(
+    str(DB_FILE),
+    read_only=True
+)
 
 # =========================================================
 # LOAD DATABASE
@@ -261,17 +316,7 @@ def load_database():
         """
     ).df()
 
-try:
-
-    df = load_database()
-
-except Exception as e:
-
-    st.error(
-        f"Data Loading Failed: {e}"
-    )
-
-    st.stop()
+df = load_database()
 
 # =========================================================
 # CLEAN NUMERIC
@@ -407,17 +452,11 @@ filtered_df = df.copy()
 if selected_sector != "All":
 
     filtered_df = filtered_df[
-
-        filtered_df["Sector"]
-
-        == selected_sector
+        filtered_df["Sector"] == selected_sector
     ]
 
 filtered_df = filtered_df[
-
-    filtered_df[
-        "Institutional Score"
-    ] >= min_score
+    filtered_df["Institutional Score"] >= min_score
 ]
 
 # =========================================================
@@ -435,7 +474,7 @@ filtered_df = filtered_df.sort_values(
 )
 
 # =========================================================
-# LIVE ENGINE
+# BUILD TRADE DECISIONS
 # =========================================================
 
 with st.spinner(
@@ -445,6 +484,10 @@ with st.spinner(
     filtered_df = build_trade_decisions(
         filtered_df
     )
+
+# =========================================================
+# EMPTY CHECK
+# =========================================================
 
 if filtered_df.empty:
 
@@ -469,10 +512,8 @@ market_regime = calculate_market_regime(
 if selected_signal != "All":
 
     filtered_df = filtered_df[
-
-        filtered_df[
-            "Trade Signal"
-        ] == selected_signal
+        filtered_df["Trade Signal"]
+        == selected_signal
     ]
 
 # =========================================================
@@ -482,12 +523,16 @@ if selected_signal != "All":
 st.markdown(
 
     """
-    <div class="dashboard-title">
-        Institutional - Quant - Urls
-    </div>
+    <div class="dashboard-header">
 
-    <div class="dashboard-subtitle">
-        AI-Powered Institutional Quantitative Analytics Platform
+        <div class="dashboard-title">
+            Institutional - Quant - Urls
+        </div>
+
+        <div class="dashboard-subtitle">
+            AI-Powered Institutional Quantitative Analytics Platform
+        </div>
+
     </div>
     """,
 
@@ -502,7 +547,7 @@ st.caption(
 )
 
 # =========================================================
-# STATUS BAR
+# STATUS
 # =========================================================
 
 col_a, col_b = st.columns([1, 2])
@@ -513,28 +558,14 @@ with col_a:
 
     if 9 <= current_hour <= 15:
 
-        st.markdown(
-
-            """
-            <div class="live-box">
-                🟢 Indian Market Live
-            </div>
-            """,
-
-            unsafe_allow_html=True
+        st.success(
+            "🟢 Indian Market Live"
         )
 
     else:
 
-        st.markdown(
-
-            """
-            <div class="closed-box">
-                🔴 Market Closed
-            </div>
-            """,
-
-            unsafe_allow_html=True
+        st.warning(
+            "🔴 Market Closed"
         )
 
 with col_b:
@@ -542,13 +573,14 @@ with col_b:
     st.markdown(
 
         f"""
-        <div class="status-box">
+        <div class="status-card">
 
         ⚡ <b>Live Quant Engine Active</b>
 
         <br><br>
 
-        Universe Size: <b>{live_universe_size}</b> Stocks
+        Universe Size:
+        <b>{live_universe_size}</b>
 
         <br><br>
 
@@ -560,3 +592,303 @@ with col_b:
 
         unsafe_allow_html=True
     )
+
+# =========================================================
+# KPI CALCULATIONS
+# =========================================================
+
+avg_score = round(
+    filtered_df["Institutional Score"].mean(),
+    2
+)
+
+avg_confidence = round(
+    filtered_df["Confidence"].mean(),
+    2
+)
+
+strong_buys = len(
+    filtered_df[
+        filtered_df["Trade Signal"]
+        == "Strong Buy"
+    ]
+)
+
+# =========================================================
+# KPI CARDS
+# =========================================================
+
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+
+    st.markdown(
+        f"""
+        <div class="kpi-card">
+
+            <div class="kpi-title">
+                Live Stocks
+            </div>
+
+            <div class="kpi-value">
+                {len(filtered_df)}
+            </div>
+
+            <div class="kpi-sub">
+                Active Universe
+            </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with col2:
+
+    st.markdown(
+        f"""
+        <div class="kpi-card">
+
+            <div class="kpi-title">
+                Avg Institutional Score
+            </div>
+
+            <div class="kpi-value">
+                {avg_score}
+            </div>
+
+            <div class="kpi-sub">
+                Institutional Strength
+            </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with col3:
+
+    st.markdown(
+        f"""
+        <div class="kpi-card">
+
+            <div class="kpi-title">
+                Strong Buys
+            </div>
+
+            <div class="kpi-value">
+                {strong_buys}
+            </div>
+
+            <div class="kpi-sub">
+                High Conviction Signals
+            </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with col4:
+
+    st.markdown(
+        f"""
+        <div class="kpi-card">
+
+            <div class="kpi-title">
+                Avg Confidence
+            </div>
+
+            <div class="kpi-value">
+                {avg_confidence}
+            </div>
+
+            <div class="kpi-sub">
+                Model Confidence
+            </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+# =========================================================
+# TABLE DATA
+# =========================================================
+
+top_signals = filtered_df[
+    filtered_df["Trade Signal"].isin(
+        ["Strong Buy", "Buy"]
+    )
+].copy()
+
+if top_signals.empty:
+
+    top_signals = filtered_df.head(20)
+
+display_columns = [
+
+    "Stock",
+
+    "Trade Signal",
+
+    "Current Price",
+
+    "Target Price",
+
+    "Stoploss",
+
+    "Confidence",
+
+    "Momentum Score",
+
+    "Volume Score",
+
+    "5D Return",
+
+    "20D Return",
+
+    "Composite Score"
+]
+
+available_columns = [
+
+    col
+
+    for col in display_columns
+
+    if col in top_signals.columns
+]
+
+styled_df = top_signals[
+    available_columns
+].head(50)
+
+# =========================================================
+# POWER BI LAYOUT
+# =========================================================
+
+left_col, right_col = st.columns([2, 1])
+
+with left_col:
+
+    st.markdown(
+        '<div class="section-title">Top Institutional Trade Signals</div>',
+        unsafe_allow_html=True
+    )
+
+    st.dataframe(
+        styled_df,
+        use_container_width=True,
+        height=650
+    )
+
+with right_col:
+
+    st.markdown(
+        '<div class="section-title">Market Intelligence</div>',
+        unsafe_allow_html=True
+    )
+
+    top_sector = filtered_df[
+        "Sector"
+    ].mode()[0]
+
+    st.info(
+        f"""
+        Dominant Sector:
+
+        {top_sector}
+        """
+    )
+
+    bullish_count = len(
+        filtered_df[
+            filtered_df[
+                "Trade Signal"
+            ].isin([
+                "Strong Buy",
+                "Buy"
+            ])
+        ]
+    )
+
+    bearish_count = len(
+        filtered_df[
+            filtered_df[
+                "Trade Signal"
+            ] == "Avoid"
+        ]
+    )
+
+    st.metric(
+        "Bullish Signals",
+        bullish_count
+    )
+
+    st.metric(
+        "Bearish Signals",
+        bearish_count
+    )
+
+    st.metric(
+        "Market Regime",
+        market_regime
+    )
+
+# =========================================================
+# QUANT LEADERS
+# =========================================================
+
+st.markdown(
+    '<div class="section-title">Top Quant Leaders</div>',
+    unsafe_allow_html=True
+)
+
+quant_df = filtered_df.sort_values(
+
+    by="Composite Score",
+
+    ascending=False
+
+).head(20)
+
+st.dataframe(
+
+    quant_df[
+        available_columns
+    ],
+
+    use_container_width=True
+)
+
+# =========================================================
+# FULL DATASET
+# =========================================================
+
+with st.expander(
+    "View Full Dataset"
+):
+
+    st.dataframe(
+
+        filtered_df,
+
+        use_container_width=True
+    )
+
+# =========================================================
+# FOOTER
+# =========================================================
+
+st.markdown("---")
+
+st.caption(
+    "Institutional - Quant - Urls | Power BI Style Institutional Analytics Dashboard"
+)
+
+# =========================================================
+# CLOSE DATABASE
+# =========================================================
+
+conn.close()
