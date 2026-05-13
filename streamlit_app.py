@@ -49,7 +49,12 @@ st.markdown(
 
         padding-top: 1rem;
 
-        max-width: 1450px;
+        max-width: 1500px;
+    }
+
+    .stDataFrame {
+
+        border-radius: 10px;
     }
 
     </style>
@@ -234,13 +239,13 @@ live_universe_size = st.sidebar.slider(
 
     "Live Analysis Universe",
 
-    min_value=25,
+    min_value=100,
 
-    max_value=100,
+    max_value=len(df),
 
-    value=50,
+    value=min(300, len(df)),
 
-    step=25
+    step=100
 )
 
 # =========================================================
@@ -325,10 +330,13 @@ filtered_df = filtered_df.sort_values(
     by="Institutional Score",
 
     ascending=False
-
-).head(
-    live_universe_size
 )
+
+if live_universe_size < len(filtered_df):
+
+    filtered_df = filtered_df.head(
+        live_universe_size
+    )
 
 # =========================================================
 # BUILD TRADE DECISIONS
@@ -421,7 +429,7 @@ with status_col1:
 with status_col2:
 
     st.info(
-        f"⚡ Universe Size: {live_universe_size}"
+        f"⚡ Universe Size: {len(filtered_df)}"
     )
 
 with status_col3:
@@ -494,7 +502,7 @@ st.markdown("---")
 # MAIN DASHBOARD LAYOUT
 # =========================================================
 
-left_col, right_col = st.columns([3, 1])
+left_col, right_col = st.columns([3.5, 1.2])
 
 # =========================================================
 # LEFT SIDE
@@ -554,11 +562,11 @@ with left_col:
 
         top_signals[
             available_columns
-        ].head(50),
+        ].head(100),
 
         use_container_width=True,
 
-        height=650
+        height=700
     )
 
 # =========================================================
@@ -613,10 +621,6 @@ with right_col:
         market_regime
     )
 
-    # =====================================================
-    # SAFE TOP SECTOR
-    # =====================================================
-
     if "Sector" in filtered_df.columns:
 
         sector_series = (
@@ -665,7 +669,7 @@ quant_df = filtered_df.sort_values(
 
     ascending=False
 
-).head(20)
+).head(25)
 
 st.dataframe(
 
@@ -673,7 +677,9 @@ st.dataframe(
         available_columns
     ],
 
-    use_container_width=True
+    use_container_width=True,
+
+    height=500
 )
 
 # =========================================================
@@ -688,7 +694,9 @@ with st.expander(
 
         filtered_df,
 
-        use_container_width=True
+        use_container_width=True,
+
+        height=700
     )
 
 # =========================================================
