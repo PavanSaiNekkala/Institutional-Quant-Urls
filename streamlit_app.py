@@ -183,6 +183,30 @@ def load_database():
 try:
 
     df = load_database()
+# =========================================================
+# LOAD INPUT UNIVERSE
+# =========================================================
+
+INPUT_FILE = (
+
+    BASE_DIR
+
+    / "input"
+
+    / "yfinance_stock_urls.xlsx"
+)
+
+try:
+
+    input_df = pd.read_excel(
+        INPUT_FILE
+    )
+
+    total_universe = len(input_df)
+
+except Exception:
+
+    total_universe = len(df)
 
 except Exception as e:
 
@@ -587,7 +611,28 @@ with status_col3:
     st.info(
         f"📊 Regime: {market_regime}"
     )
+# =========================================================
+# UNIVERSE METRICS
+# =========================================================
 
+processed_universe = len(df)
+
+failed_universe = max(
+
+    total_universe - processed_universe,
+
+    0
+)
+
+success_rate = round(
+
+    (
+        processed_universe
+        / total_universe
+    ) * 100,
+
+    2
+)
 # =========================================================
 # KPI SECTION
 # =========================================================
@@ -623,25 +668,48 @@ strong_buys = len(
 metric1, metric2, metric3, metric4 = st.columns(4)
 
 metric1.metric(
+    "Total Universe",
+    total_universe
+)
+
+metric2.metric(
+    "Processed Stocks",
+    processed_universe
+)
+
+metric3.metric(
+    "Failed Stocks",
+    failed_universe
+)
+
+metric4.metric(
+    "Success Rate",
+    f"{success_rate}%"
+)
+
+st.markdown("---")
+
+metric5, metric6, metric7, metric8 = st.columns(4)
+
+metric5.metric(
     "Live Stocks",
     len(filtered_df)
 )
 
-metric2.metric(
+metric6.metric(
     "Institutional Score",
     avg_score
 )
 
-metric3.metric(
+metric7.metric(
     "Strong Buys",
     strong_buys
 )
 
-metric4.metric(
+metric8.metric(
     "Confidence",
     avg_confidence
 )
-
 # =========================================================
 # LOAD PRICE HISTORY
 # =========================================================
