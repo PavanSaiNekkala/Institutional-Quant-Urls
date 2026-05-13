@@ -196,9 +196,52 @@ df = pd.read_excel(
     INPUT_FILE
 )
 
+# =========================================================
+# CLEAN INPUT STOCKS
+# =========================================================
+
+df["Stock"] = (
+
+    df["Stock"]
+
+    .astype(str)
+
+    .str.strip()
+
+    .str.upper()
+)
+
+# =========================================================
+# REMOVE DUPLICATES
+# =========================================================
+
+df = df.drop_duplicates(
+    subset=["Stock"]
+)
+
+# =========================================================
+# REMOVE EMPTY STOCKS
+# =========================================================
+
+df = df[
+    df["Stock"].notna()
+]
+
+df = df[
+    df["Stock"] != ""
+]
+
+# =========================================================
+# RESET INDEX
+# =========================================================
+
+df = df.reset_index(
+    drop=True
+)
+
 print(
-    f"Total Stocks Loaded : "
-    f"{len(df)}"
+    f"Unique Stocks Loaded : "
+    f"{df['Stock'].nunique()}"
 )
 
 print(
@@ -287,19 +330,6 @@ def process_stock(row):
         stock = str(
             row["Stock"]
         ).strip()
-
-        # =================================================
-        # CACHE SKIP
-        # =================================================
-
-        if stock in processed_symbols:
-
-            return {
-                "status": "SKIPPED",
-                "data": {
-                    "Stock": stock
-                }
-            }
 
         print(
             f"Processing : {stock}"
@@ -541,15 +571,6 @@ for batch_num, batch_df in enumerate(
                         f"{failure_count}"
                     )
 
-                elif result["status"] == "SKIPPED":
-
-                    skipped_count += 1
-
-                    print(
-                        f"SKIPPED : "
-                        f"{skipped_count}"
-                    )
-
             except Exception as e:
 
                 failed.append({
@@ -600,32 +621,30 @@ failed_df = pd.DataFrame(
 )
 
 # =========================================================
-# CACHE MERGE
+# CLEAN FINAL DATA
 # =========================================================
 
-if not cache_df.empty:
+final_cache_df = results_df.copy()
 
-    final_cache_df = pd.concat(
+# =========================================================
+# REMOVE DUPLICATES
+# =========================================================
 
-        [
-            cache_df,
-            results_df
-        ],
+final_cache_df = (
 
-        ignore_index=True
+    final_cache_df
+
+    .drop_duplicates(
+        subset=["Stock"]
     )
 
-    final_cache_df = (
+    .reset_index(drop=True)
+)
 
-        final_cache_df
-        .drop_duplicates(
-            subset=["Stock"]
-        )
-    )
-
-else:
-
-    final_cache_df = results_df.copy()
+print(
+    f"Final Unique Stocks : "
+    f"{final_cache_df['Stock'].nunique()}"
+)
 
 # =========================================================
 # ML MODEL
@@ -673,39 +692,6 @@ backtest_results = run_backtest(
     portfolio_df
 )
 
-if backtest_results is not None:
-
-    print("=" * 60)
-
-    print("BACKTEST RESULTS")
-
-    print("=" * 60)
-
-    print(
-        f"CAGR : "
-        f"{backtest_results['CAGR']}%"
-    )
-
-    print(
-        f"Sharpe Ratio : "
-        f"{backtest_results['Sharpe Ratio']}"
-    )
-
-    print(
-        f"Max Drawdown : "
-        f"{backtest_results['Max Drawdown']}%"
-    )
-
-    print(
-        f"Volatility : "
-        f"{backtest_results['Volatility']}%"
-    )
-
-    print(
-        f"Win Rate : "
-        f"{backtest_results['Win Rate']}%"
-    )
-
 # =========================================================
 # SAVE DATABASE
 # =========================================================
@@ -714,6 +700,28 @@ print("=" * 60)
 print("SAVING TO DUCKDB...")
 print("=" * 60)
 
+# =========================================================
+# CLEAR OLD TABLES
+# =========================================================
+
+conn.execute(
+    '''
+    DROP TABLE IF EXISTS
+    enriched_stocks
+    '''
+)
+
+conn.execute(
+    '''
+    DROP TABLE IF EXISTS
+    institutional_portfolio
+    '''
+)
+
+# =========================================================
+# SAVE CLEAN STOCK DATA
+# =========================================================
+
 conn.register(
     "final_cache_df",
     final_cache_df
@@ -721,13 +729,17 @@ conn.register(
 
 conn.execute(
     '''
-    CREATE OR REPLACE TABLE
+    CREATE TABLE
     enriched_stocks AS
 
     SELECT *
     FROM final_cache_df
     '''
 )
+
+# =========================================================
+# SAVE PORTFOLIO
+# =========================================================
 
 conn.register(
     "portfolio_df",
@@ -736,7 +748,7 @@ conn.register(
 
 conn.execute(
     '''
-    CREATE OR REPLACE TABLE
+    CREATE TABLE
     institutional_portfolio AS
 
     SELECT *
@@ -862,11 +874,6 @@ print(
 print(
     f"Failed Stocks : "
     f"{len(failed_df)}"
-)
-
-print(
-    f"Skipped Stocks : "
-    f"{skipped_count}"
 )
 
 print(
