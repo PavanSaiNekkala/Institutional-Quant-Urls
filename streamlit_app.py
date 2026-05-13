@@ -12,6 +12,8 @@ import duckdb
 import plotly.express as px
 
 from pathlib import Path
+from datetime import datetime
+import time
 
 from analytics.trade_decision_engine import (
 
@@ -41,7 +43,7 @@ st.set_page_config(
 # LIVE MARKET SWITCH
 # =========================================================
 
-ENABLE_LIVE_MARKET = False
+ENABLE_LIVE_MARKET = True
 
 # =========================================================
 # SECTOR NORMALIZATION ENGINE
@@ -57,157 +59,48 @@ def normalize_sector(sector):
 
     sector_mapping = {
 
-        # =============================================
-        # TECHNOLOGY
-        # =============================================
-
         "it services": "Technology",
-
         "software": "Technology",
-
         "information technology": "Technology",
-
         "tech": "Technology",
 
-        "digital": "Technology",
-
-        "saas": "Technology",
-
-        # =============================================
-        # BANKING & FINANCE
-        # =============================================
-
         "banks": "Banking",
-
         "banking": "Banking",
 
         "financial services": "Financial Services",
-
         "finance": "Financial Services",
-
         "nbfc": "Financial Services",
 
-        "insurance": "Financial Services",
-
-        "asset management": "Financial Services",
-
-        # =============================================
-        # PHARMA & HEALTHCARE
-        # =============================================
-
-        "pharmaceuticals": "Healthcare",
-
         "pharma": "Healthcare",
-
+        "pharmaceuticals": "Healthcare",
         "healthcare": "Healthcare",
 
-        "biotech": "Healthcare",
-
-        "hospital": "Healthcare",
-
-        # =============================================
-        # ENERGY
-        # =============================================
-
         "oil & gas": "Energy",
-
-        "oil": "Energy",
-
-        "gas": "Energy",
-
+        "energy": "Energy",
         "power": "Energy",
 
-        "renewable energy": "Energy",
-
-        "energy": "Energy",
-
-        # =============================================
-        # FMCG & CONSUMER
-        # =============================================
-
         "fmcg": "Consumer",
-
         "consumer goods": "Consumer",
 
-        "consumer staples": "Consumer",
-
-        "retail": "Consumer",
-
-        "food products": "Consumer",
-
-        "beverages": "Consumer",
-
-        # =============================================
-        # AUTO
-        # =============================================
-
         "automobile": "Automobile",
-
         "auto": "Automobile",
 
-        "auto ancillaries": "Automobile",
-
-        "automotive": "Automobile",
-
-        # =============================================
-        # INDUSTRIALS
-        # =============================================
-
         "capital goods": "Industrials",
-
-        "industrial manufacturing": "Industrials",
-
         "engineering": "Industrials",
 
-        "infrastructure": "Industrials",
-
-        "construction": "Industrials",
-
-        # =============================================
-        # METALS & MATERIALS
-        # =============================================
-
         "metals": "Metals & Mining",
-
-        "mining": "Metals & Mining",
-
         "steel": "Metals & Mining",
 
         "cement": "Materials",
-
         "chemicals": "Chemicals",
-
-        # =============================================
-        # TELECOM
-        # =============================================
 
         "telecom": "Telecommunication",
 
-        "telecommunications": "Telecommunication",
-
-        # =============================================
-        # MEDIA
-        # =============================================
-
         "media": "Media",
-
-        "entertainment": "Media",
-
-        # =============================================
-        # REAL ESTATE
-        # =============================================
 
         "real estate": "Real Estate",
 
-        "realty": "Real Estate",
-
-        # =============================================
-        # TEXTILES
-        # =============================================
-
-        "textiles": "Textiles",
-
-        "apparel": "Textiles"
+        "textiles": "Textiles"
     }
 
     for key, value in sector_mapping.items():
@@ -253,58 +146,23 @@ except Exception as e:
     st.stop()
 
 # =========================================================
-# CHECK TABLES
+# LOAD DATA
 # =========================================================
 
-try:
+@st.cache_data(ttl=300)
 
-    tables = conn.execute(
-        '''
-        SHOW TABLES
-        '''
-    ).fetchall()
+def load_database():
 
-    tables = [
-        table[0]
-        for table in tables
-    ]
-
-except Exception as e:
-
-    st.error(
-        f"Table Detection Failed : {e}"
-    )
-
-    st.stop()
-
-# =========================================================
-# VALIDATE DATABASE
-# =========================================================
-
-if "enriched_stocks" not in tables:
-
-    st.error(
-        """
-        enriched_stocks table not found.
-
-        Please run main.py locally first.
-        """
-    )
-
-    st.stop()
-
-# =========================================================
-# LOAD MAIN DATA
-# =========================================================
-
-try:
-
-    df = conn.execute(
+    return conn.execute(
         '''
         SELECT *
         FROM enriched_stocks
         '''
     ).df()
+
+try:
+
+    df = load_database()
 
 except Exception as e:
 
@@ -313,29 +171,6 @@ except Exception as e:
     )
 
     st.stop()
-
-# =========================================================
-# LOAD PORTFOLIO
-# =========================================================
-
-try:
-
-    if "institutional_portfolio" in tables:
-
-        portfolio_df = conn.execute(
-            '''
-            SELECT *
-            FROM institutional_portfolio
-            '''
-        ).df()
-
-    else:
-
-        portfolio_df = pd.DataFrame()
-
-except:
-
-    portfolio_df = pd.DataFrame()
 
 # =========================================================
 # NUMERIC CLEANING
@@ -353,9 +188,7 @@ numeric_columns = [
 
     "Buy Probability",
 
-    "Current Price",
-
-    "Portfolio Weight"
+    "Current Price"
 ]
 
 for column in numeric_columns:
@@ -386,40 +219,6 @@ else:
     df["Sector"] = "Other"
 
 # =========================================================
-# LIVE MARKET DATA
-# =========================================================
-
-@st.cache_data(ttl=300)
-
-def load_live_market_data(symbols):
-
-    return fetch_live_market_data(
-        symbols
-    )
-
-if "Validated Symbol" in df.columns:
-
-    symbols = df[
-        "Validated Symbol"
-    ].dropna().tolist()
-
-else:
-
-    symbols = df[
-        "Stock"
-    ].dropna().tolist()
-
-if ENABLE_LIVE_MARKET:
-
-    live_df = load_live_market_data(
-        symbols[:5]
-    )
-
-else:
-
-    live_df = pd.DataFrame()
-
-# =========================================================
 # SIDEBAR
 # =========================================================
 
@@ -428,32 +227,51 @@ st.sidebar.title(
 )
 
 # =========================================================
+# REFRESH BUTTON
+# =========================================================
+
+st.sidebar.markdown("---")
+
+if st.sidebar.button(
+    "🔄 Refresh Market Data"
+):
+
+    st.cache_data.clear()
+
+    st.rerun()
+
+# =========================================================
+# AUTO REFRESH
+# =========================================================
+
+auto_refresh = st.sidebar.checkbox(
+
+    "Enable Auto Refresh",
+
+    value=False
+)
+
+# =========================================================
 # SECTOR FILTER
 # =========================================================
 
-if "Sector" in df.columns:
+sectors = sorted(
 
-    sectors = sorted(
+    df["Sector"]
 
-        df["Sector"]
+    .dropna()
 
-        .dropna()
+    .unique()
 
-        .unique()
+    .tolist()
+)
 
-        .tolist()
-    )
+selected_sector = st.sidebar.selectbox(
 
-    selected_sector = st.sidebar.selectbox(
+    "Select Sector",
 
-        "Select Sector",
-
-        ["All"] + sectors
-    )
-
-else:
-
-    selected_sector = "All"
+    ["All"] + sectors
+)
 
 # =========================================================
 # SIGNAL FILTER
@@ -498,10 +316,7 @@ min_score = st.sidebar.slider(
 
 filtered_df = df.copy()
 
-if (
-    selected_sector != "All"
-    and "Sector" in filtered_df.columns
-):
+if selected_sector != "All":
 
     filtered_df = filtered_df[
 
@@ -510,14 +325,12 @@ if (
         == selected_sector
     ]
 
-if "Institutional Score" in filtered_df.columns:
+filtered_df = filtered_df[
 
-    filtered_df = filtered_df[
-
-        filtered_df[
-            "Institutional Score"
-        ] >= min_score
-    ]
+    filtered_df[
+        "Institutional Score"
+    ] >= min_score
+]
 
 # =========================================================
 # BUILD TRADE DECISIONS
@@ -557,10 +370,40 @@ st.title(
 )
 
 # =========================================================
+# LAST UPDATED
+# =========================================================
+
+st.caption(
+
+    f"Last Updated: "
+
+    f"{datetime.now().strftime('%d-%m-%Y %H:%M:%S')}"
+)
+
+# =========================================================
+# LIVE MARKET STATUS
+# =========================================================
+
+current_hour = datetime.now().hour
+
+if 9 <= current_hour <= 15:
+
+    st.success(
+        "🟢 Indian Market Live"
+    )
+
+else:
+
+    st.warning(
+        "🔴 Market Closed"
+    )
+
+# =========================================================
 # MARKET REGIME DISPLAY
 # =========================================================
 
 st.markdown(
+
     f"""
     ## Market Regime: {market_regime}
     """
@@ -573,10 +416,25 @@ st.markdown("---")
 # =========================================================
 
 st.subheader(
-    "Top 50 Institutional Trade Signals"
+    "Top Institutional Trade Signals"
 )
 
-priority_columns = [
+top_signals = filtered_df[
+
+    filtered_df[
+        "Trade Signal"
+    ].isin(
+
+        [
+            "Strong Buy",
+
+            "Buy"
+        ]
+    )
+
+].copy()
+
+display_columns = [
 
     "Stock",
 
@@ -588,56 +446,33 @@ priority_columns = [
 
     "Stoploss",
 
-    "Confidence"
+    "Confidence",
+
+    "Momentum Score",
+
+    "Volume Score",
+
+    "5D Return",
+
+    "20D Return",
+
+    "Composite Score"
 ]
 
 available_columns = [
 
-    column
+    col
 
-    for column in priority_columns
+    for col in display_columns
 
-    if column in filtered_df.columns
+    if col in top_signals.columns
 ]
-
-priority_df = filtered_df[
-    available_columns
-].copy()
-
-signal_order = {
-
-    "Strong Buy": 0,
-
-    "Buy": 1,
-
-    "Watch": 2,
-
-    "Avoid": 3
-}
-
-priority_df["Signal Rank"] = priority_df[
-    "Trade Signal"
-].map(signal_order)
-
-priority_df = priority_df.sort_values(
-
-    by=[
-
-        "Signal Rank",
-
-        "Confidence"
-    ],
-
-    ascending=[True, False]
-)
-
-priority_df = priority_df.drop(
-    columns=["Signal Rank"]
-)
 
 st.dataframe(
 
-    priority_df.head(50),
+    top_signals[
+        available_columns
+    ].head(50),
 
     use_container_width=True,
 
@@ -658,16 +493,29 @@ col1.metric(
 )
 
 avg_score = round(
+
     filtered_df[
         "Institutional Score"
     ].mean(),
+
     2
 )
 
 avg_alpha = round(
+
     filtered_df[
         "Alpha Score"
     ].mean(),
+
+    2
+)
+
+avg_confidence = round(
+
+    filtered_df[
+        "Confidence"
+    ].mean(),
+
     2
 )
 
@@ -682,8 +530,8 @@ col3.metric(
 )
 
 col4.metric(
-    "Portfolio Stocks",
-    len(portfolio_df)
+    "Avg Confidence",
+    avg_confidence
 )
 
 st.markdown("---")
@@ -692,92 +540,51 @@ st.markdown("---")
 # SECTOR DISTRIBUTION
 # =========================================================
 
-if "Sector" in filtered_df.columns:
+st.subheader(
+    "Sector Distribution"
+)
 
-    st.subheader(
-        "Sector Distribution"
-    )
+sector_chart = px.pie(
 
-    sector_chart = px.pie(
+    filtered_df,
 
-        filtered_df,
+    names="Sector",
 
-        names="Sector",
+    title="Sector Allocation"
+)
 
-        title="Sector Allocation"
-    )
+st.plotly_chart(
 
-    st.plotly_chart(
-        sector_chart,
-        use_container_width=True
-    )
+    sector_chart,
+
+    use_container_width=True
+)
 
 # =========================================================
 # ALPHA DISTRIBUTION
 # =========================================================
 
-if "Alpha Score" in filtered_df.columns:
-
-    st.subheader(
-        "Alpha Score Distribution"
-    )
-
-    alpha_chart = px.histogram(
-
-        filtered_df,
-
-        x="Alpha Score",
-
-        nbins=20,
-
-        title="Alpha Score Distribution"
-    )
-
-    st.plotly_chart(
-        alpha_chart,
-        use_container_width=True
-    )
-
-# =========================================================
-# PORTFOLIO SECTION
-# =========================================================
-
 st.subheader(
-    "Institutional Portfolio"
+    "Alpha Score Distribution"
 )
 
-if not portfolio_df.empty:
+alpha_chart = px.histogram(
 
-    display_columns = [
+    filtered_df,
 
-        column
+    x="Alpha Score",
 
-        for column in [
+    nbins=20,
 
-            "Portfolio Rank",
+    title="Alpha Score Distribution"
+)
 
-            "Stock",
+st.plotly_chart(
 
-            "Sector",
+    alpha_chart,
 
-            "Institutional Score",
-
-            "Alpha Score",
-
-            "Portfolio Weight"
-        ]
-
-        if column in portfolio_df.columns
-    ]
-
-    st.dataframe(
-
-        portfolio_df[
-            display_columns
-        ],
-
-        use_container_width=True
-    )
+    use_container_width=True
+)
 
 # =========================================================
 # TOP QUANT LEADERS
@@ -787,25 +594,23 @@ st.subheader(
     "Top Quant Leaders"
 )
 
-if "Alpha Score" in filtered_df.columns:
+quant_df = filtered_df.sort_values(
 
-    quant_df = filtered_df.sort_values(
+    by="Composite Score",
 
-        by="Alpha Score",
+    ascending=False
 
-        ascending=False
+).head(20)
 
-    ).head(20)
+st.dataframe(
 
-    st.dataframe(
+    quant_df,
 
-        quant_df,
-
-        use_container_width=True
-    )
+    use_container_width=True
+)
 
 # =========================================================
-# RAW DATA
+# FULL DATASET
 # =========================================================
 
 with st.expander(
@@ -826,8 +631,18 @@ with st.expander(
 st.markdown("---")
 
 st.caption(
-    "Institutional Quant Platform"
+    "Institutional Quant Platform | Dynamic Institutional Analytics Engine"
 )
+
+# =========================================================
+# AUTO REFRESH ENGINE
+# =========================================================
+
+if auto_refresh:
+
+    time.sleep(300)
+
+    st.rerun()
 
 # =========================================================
 # CLOSE DATABASE
