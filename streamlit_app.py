@@ -26,7 +26,7 @@ from analytics.trade_decision_engine import (
 
 st.set_page_config(
 
-    page_title="Institutional Quant Platform",
+    page_title="Institutional Quant Urls Platform",
 
     page_icon="📈",
 
