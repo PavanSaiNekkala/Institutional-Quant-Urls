@@ -1,0 +1,64 @@
+name: Daily CSV Generation
+
+on:
+  schedule:
+
+    # 8:00 AM IST = 2:30 AM UTC
+    - cron: '30 2 * * *'
+
+  workflow_dispatch:
+
+jobs:
+  generate-csv:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # =====================================
+      # CHECKOUT REPOSITORY
+      # =====================================
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # =====================================
+      # PYTHON SETUP
+      # =====================================
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # =====================================
+      # INSTALL DEPENDENCIES
+      # =====================================
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # =====================================
+      # RUN PIPELINE
+      # =====================================
+
+      - name: Run Institutional Engine
+        run: |
+          python main.py
+
+      # =====================================
+      # COMMIT GENERATED FILES
+      # =====================================
+
+      - name: Commit CSV Files
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+
+          git add .
+
+          git diff --cached --quiet || git commit -m "Auto-generated CSV files"
+
+          git push
