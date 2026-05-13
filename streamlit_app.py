@@ -257,7 +257,7 @@ live_universe_size = st.sidebar.slider(
 
     max_value=500,
 
-    value=200,
+    value=50,
 
     step=50
 )
