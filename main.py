@@ -61,11 +61,11 @@ CPU_COUNT = multiprocessing.cpu_count()
 # ULTRA SAFE YAHOO CONFIG
 # =========================================================
 
-MAX_WORKERS = 1
+MAX_WORKERS = 10
 
-BATCH_SIZE = 5
+BATCH_SIZE = 10
 
-BATCH_SLEEP = 60
+BATCH_SLEEP = 10
 
 # =========================================================
 # PATHS
