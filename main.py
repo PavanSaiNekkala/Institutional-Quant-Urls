@@ -770,14 +770,34 @@ if not backtest_df.empty:
 # EXPORT TOP PICKS
 # =========================================================
 
+# =========================================================
+# SAFE SORT COLUMN
+# =========================================================
+
+sort_column = "Institutional Score"
+
+if "Composite Score" in final_df.columns:
+
+    sort_column = "Composite Score"
+
+elif "Institutional Score" in final_df.columns:
+
+    sort_column = "Institutional Score"
+
+elif "Confidence" in final_df.columns:
+
+    sort_column = "Confidence"
+
+# =========================================================
+# TOP PICKS
+# =========================================================
+
 top_picks_df = final_df.sort_values(
 
-    by="Composite Score",
+    by=sort_column,
 
     ascending=False
-
-).head(50)
-
+)
 top_picks_df.to_csv(
 
     OUTPUT_DIR
