@@ -1,4 +1,3 @@
-
 # =========================================================
 # IMPORTS
 # =========================================================
@@ -58,15 +57,15 @@ from backtesting.backtest_engine import (
 
 CPU_COUNT = multiprocessing.cpu_count()
 
-MAX_WORKERS = 3
-
 # =========================================================
-# BATCH CONFIG
+# ULTRA SAFE YAHOO CONFIG
 # =========================================================
 
-BATCH_SIZE = 25
+MAX_WORKERS = 1
 
-BATCH_SLEEP = 12
+BATCH_SIZE = 10
+
+BATCH_SLEEP = 30
 
 # =========================================================
 # PATHS
@@ -302,9 +301,9 @@ def process_stock(row):
 
             random.uniform(
 
-                1.5,
+                4,
 
-                4.0
+                8
             )
         )
 
@@ -437,6 +436,31 @@ def process_stock(row):
 
     except Exception as e:
 
+        error_text = str(e)
+
+        # =====================================================
+        # YAHOO RATE LIMIT COOLDOWN
+        # =====================================================
+
+        if (
+
+            "Too Many Requests" in error_text
+
+            or
+
+            "Rate limited" in error_text
+
+            or
+
+            "429" in error_text
+        ):
+
+            print(
+                "Yahoo cooldown triggered..."
+            )
+
+            time.sleep(60)
+
         return {
 
             "status": "FAILED",
@@ -447,7 +471,7 @@ def process_stock(row):
 
                 "Reason": categorize_failure(e),
 
-                "Error": str(e)
+                "Error": error_text
             }
         }
 
@@ -609,6 +633,24 @@ failed_df = pd.DataFrame(
 )
 
 # =========================================================
+# FINAL CHECKPOINT SAVE
+# =========================================================
+
+results_df.to_csv(
+
+    PARTIAL_RESULTS_FILE,
+
+    index=False
+)
+
+failed_df.to_csv(
+
+    PARTIAL_FAILED_FILE,
+
+    index=False
+)
+
+# =========================================================
 # REMOVE DUPLICATES
 # =========================================================
 
@@ -671,12 +713,18 @@ if ml_model is not None:
     )
 
 # =========================================================
-# BUILD PORTFOLIO
+# SAFE PORTFOLIO
 # =========================================================
 
-portfolio_df = build_portfolio(
-    final_df
-)
+if final_df.empty:
+
+    portfolio_df = pd.DataFrame()
+
+else:
+
+    portfolio_df = build_portfolio(
+        final_df
+    )
 
 # =========================================================
 # RUN BACKTEST
@@ -686,9 +734,19 @@ print("=" * 60)
 print("RUNNING BACKTEST...")
 print("=" * 60)
 
-backtest_results = run_backtest(
-    portfolio_df
-)
+# =========================================================
+# SAFE BACKTEST
+# =========================================================
+
+if portfolio_df.empty:
+
+    backtest_results = None
+
+else:
+
+    backtest_results = run_backtest(
+        portfolio_df
+    )
 
 # =========================================================
 # SAVE DATABASE
@@ -863,6 +921,30 @@ for filename, dataframe in xlsx_exports.items():
 print("=" * 60)
 print("ALL CSV + XLSX EXPORTS COMPLETED")
 print("=" * 60)
+
+# =========================================================
+# CLEAN CHECKPOINT FILES
+# =========================================================
+
+try:
+
+    if PARTIAL_RESULTS_FILE.exists():
+
+        PARTIAL_RESULTS_FILE.unlink()
+
+    if PARTIAL_FAILED_FILE.exists():
+
+        PARTIAL_FAILED_FILE.unlink()
+
+    print(
+        "Checkpoint files cleaned."
+    )
+
+except Exception as e:
+
+    print(
+        f"Checkpoint cleanup failed: {e}"
+    )
 
 # =========================================================
 # CLOSE DATABASE
