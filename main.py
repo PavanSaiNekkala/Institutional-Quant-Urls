@@ -63,9 +63,9 @@ CPU_COUNT = multiprocessing.cpu_count()
 
 MAX_WORKERS = 1
 
-BATCH_SIZE = 10
+BATCH_SIZE = 5
 
-BATCH_SLEEP = 30
+BATCH_SLEEP = 60
 
 # =========================================================
 # PATHS
@@ -301,9 +301,9 @@ def process_stock(row):
 
             random.uniform(
 
-                4,
+                8,
 
-                8
+                16
             )
         )
 
@@ -459,7 +459,7 @@ def process_stock(row):
                 "Yahoo cooldown triggered..."
             )
 
-            time.sleep(60)
+            time.sleep(120)
 
         return {
 
