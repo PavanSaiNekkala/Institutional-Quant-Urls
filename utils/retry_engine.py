@@ -3,6 +3,7 @@
 # =========================================================
 
 import time
+import random
 
 # =========================================================
 # RETRY REQUEST
@@ -12,9 +13,9 @@ def retry_request(
 
     func,
 
-    retries=5,
+    retries=6,
 
-    delay=2
+    base_delay=3
 ):
 
     last_exception = None
@@ -29,8 +30,28 @@ def retry_request(
 
             last_exception = e
 
-            time.sleep(
-                delay
+            wait_time = (
+
+                base_delay
+
+                * (attempt + 1)
+
+                +
+
+                random.uniform(
+                    1,
+                    3
+                )
             )
+
+            print(
+
+                f"Retry {attempt+1}"
+
+                f" | Waiting {wait_time:.2f}s"
+
+            )
+
+            time.sleep(wait_time)
 
     raise last_exception
