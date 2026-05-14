@@ -2,10 +2,12 @@
 # IMPORTS
 # =========================================================
 
-import pandas as pd
 import time
+import random
+import pandas as pd
 import yfinance as yf
 import multiprocessing
+
 
 from concurrent.futures import (
     ThreadPoolExecutor,
@@ -56,7 +58,7 @@ from backtesting.backtest_engine import (
 
 CPU_COUNT = multiprocessing.cpu_count()
 
-MAX_WORKERS = 8
+MAX_WORKERS = 3
 
 # =========================================================
 # BATCH CONFIG
