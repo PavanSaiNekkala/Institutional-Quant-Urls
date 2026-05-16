@@ -10,7 +10,7 @@ on:
     - cron: "30 2 * * *"
 
   # =======================================================
-  # MANUAL TRIGGER
+  # MANUAL RUN
   # =======================================================
 
   workflow_dispatch:
@@ -26,7 +26,7 @@ concurrency:
   cancel-in-progress: true
 
 # =========================================================
-# REQUIRED GITHUB PERMISSIONS
+# REQUIRED FOR PUSHING GENERATED FILES
 # =========================================================
 
 permissions:
@@ -41,8 +41,6 @@ env:
   PYTHONUNBUFFERED: "1"
 
   PIP_DISABLE_PIP_VERSION_CHECK: "1"
-
-  PIP_NO_CACHE_DIR: "1"
 
   TZ: "Asia/Kolkata"
 
@@ -93,7 +91,7 @@ jobs:
           cache: "pip"
 
       # ===================================================
-      # SYSTEM INFORMATION
+      # SYSTEM INFO
       # ===================================================
 
       - name: System Information
@@ -254,7 +252,7 @@ jobs:
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       # ===================================================
-      # ADD GENERATED FILES
+      # STAGE GENERATED FILES
       # ===================================================
 
       - name: Stage Generated Files
@@ -288,7 +286,7 @@ jobs:
           git diff --cached --quiet && echo "No changes detected" || git commit -m "Automated institutional pipeline update"
 
       # ===================================================
-      # PUSH TO GITHUB
+      # PUSH CHANGES
       # ===================================================
 
       - name: Push Changes
