@@ -484,57 +484,76 @@ st.markdown(
 # MARKET REGIME ENGINE
 # =========================================================
 
+# =========================================================
+# MARKET REGIME ENGINE
+# =========================================================
+
 market_regime = "UNKNOWN"
 market_color = "#808080"
 
-try:
+# =========================================================
+# SAFE SCORE
+# =========================================================
 
-    avg_score = filtered_df["Institutional_Score"].mean()
+avg_score = 0
 
-    # Create RSI if missing
-    # =========================================================
-    # SAFE RSI HANDLING
-    # =========================================================
+if "Institutional_Score" in filtered_df.columns:
 
-    if "RSI" not in filtered_df.columns:
-        filtered_df["RSI"] = 55
-
-    filtered_df["RSI"] = (
-        pd.to_numeric(filtered_df["RSI"], errors="coerce")
-        .fillna(55)
-        .replace(0, 55)
+    avg_score = round(
+        pd.to_numeric(
+            filtered_df["Institutional_Score"],
+            errors="coerce"
+        ).fillna(0).mean(),
+        2
     )
 
-    avg_rsi = round(filtered_df["RSI"].mean(), 2)
+# =========================================================
+# SAFE RSI
+# =========================================================
 
-# Bull Market
-if avg_score >= 80 and avg_rsi >= 55:
-        market_regime = "BULLISH"
-        market_color = "#006400"
+if "RSI" not in filtered_df.columns:
 
-# Recovery Market
-elif avg_score >= 65:
-        market_regime = "RECOVERY"
-        market_color = "#00AA00"
+    filtered_df["RSI"] = 55
 
-# Sideways
-elif avg_score >= 50:
-        market_regime = "SIDEWAYS"
-        market_color = "#FF8C00"
+filtered_df["RSI"] = (
+    pd.to_numeric(
+        filtered_df["RSI"],
+        errors="coerce"
+    )
+    .fillna(55)
+    .replace(0, 55)
+)
 
-# Weak
-elif avg_score >= 35:
-        market_regime = "WEAK"
-        market_color = "#1E90FF"
+avg_rsi = round(filtered_df["RSI"].mean(), 2)
 
-# Bear Market
+# =========================================================
+# MARKET REGIME LOGIC
+# =========================================================
+
+if avg_score >= 85 and avg_rsi >= 60:
+
+    market_regime = "BULLISH"
+    market_color = "#006400"
+
+elif avg_score >= 70:
+
+    market_regime = "RECOVERY"
+    market_color = "#00AA00"
+
+elif avg_score >= 55:
+
+    market_regime = "SIDEWAYS"
+    market_color = "#FF8C00"
+
+elif avg_score >= 40:
+
+    market_regime = "WEAK"
+    market_color = "#1E90FF"
+
 else:
-        market_regime = "BEARISH"
-        market_color = "#FF4B4B"
 
-except Exception as e:
-print("Market regime error:", e)
-
+    market_regime = "BEARISH"
+    market_color = "#FF4B4B"
 # =========================================================
 # EMPTY FILTER SAFETY
 # =========================================================
