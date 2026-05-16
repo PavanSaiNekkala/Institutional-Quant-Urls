@@ -462,13 +462,14 @@ st.caption(
 from market_regime import get_market_regime
 
 regime, regime_color, regime_details = get_market_regime()
+
 st.write(
-        f"""
-        NIFTY: {regime_details['NIFTY']} |
-        SMA50: {regime_details['SMA50']} |
-        SMA200: {regime_details['SMA200']} |
-        RSI: {regime_details['RSI']}
-        """
+    f"""
+    NIFTY: {regime_details.get('NIFTY', 'N/A')}
+    SMA50: {regime_details.get('SMA50', 'N/A')}
+    SMA200: {regime_details.get('SMA200', 'N/A')}
+    RSI: {regime_details.get('RSI', 'N/A')}
+    """
 )
 
 st.markdown(
