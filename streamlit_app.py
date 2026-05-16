@@ -513,7 +513,7 @@ if avg_score >= 80 and avg_rsi >= 55:
         market_color = "#006400"
 
 # Recovery Market
- elif avg_score >= 65:
+elif avg_score >= 65:
         market_regime = "RECOVERY"
         market_color = "#00AA00"
 
