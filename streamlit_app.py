@@ -259,7 +259,15 @@ signal_order = [
         "AVOID"
 
 ]
+signal_colors = {
 
+        "STRONG BUY": "#006400",   # Dark Green
+        "BUY": "#00AA00",          # Green
+        "WATCH": "#FF8C00",        # Orange
+        "HOLD": "#1E90FF",         # Blue
+        "AVOID": "#FF0000"         # Red
+
+}
 selected_trade_signal = st.sidebar.multiselect(
 
         "Trade Signal",
@@ -512,10 +520,13 @@ signal_chart = px.pie(
 
         filtered_df,
 
-        names="Trade Signal"
+        names="Trade Signal",
+
+        color="Trade Signal",
+
+        color_discrete_map=signal_colors
 
 )
-
 st.plotly_chart(
 
         signal_chart,
@@ -701,6 +712,8 @@ heatmap = px.scatter(
 
         color="Trade Signal",
 
+        color_discrete_map=signal_colors,
+
         hover_data=["Stock"]
 
 )
@@ -731,12 +744,13 @@ momentum_chart = px.scatter(
 
         y="6M Return",
 
-        color="Institutional Score",
+        color="Trade Signal",
+
+        color_discrete_map=signal_colors,
 
         hover_data=["Stock"]
 
 )
-
 st.plotly_chart(
 
         momentum_chart,
@@ -789,7 +803,42 @@ available_columns = [
         if col in filtered_df.columns
 
 ]
+# =========================
+# MAIN TABLE
+# =========================
 
+def highlight_signal(val):
+
+        colors = {
+
+                "STRONG BUY": "background-color: #006400; color: white;",
+                "BUY": "background-color: #00AA00; color: white;",
+                "WATCH": "background-color: #FF8C00; color: white;",
+                "HOLD": "background-color: #1E90FF; color: white;",
+                "AVOID": "background-color: #FF0000; color: white;"
+
+        }
+
+        return colors.get(val, "")
+
+styled_df = filtered_df[
+        available_columns
+].sort_values(
+        by="Composite Score",
+        ascending=False
+).style.map(
+        highlight_signal,
+        subset=["Trade Signal"]
+)
+
+st.dataframe(
+
+        styled_df,
+
+        use_container_width=True,
+        height=800
+
+)
 st.dataframe(
 
         filtered_df[
