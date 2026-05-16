@@ -67,11 +67,11 @@ from backtesting.backtest_engine import (
 
 CPU_COUNT = multiprocessing.cpu_count()
 
-MAX_WORKERS = min(32, CPU_COUNT * 4)
+MAX_WORKERS = min(64, CPU_COUNT * 8)
 
 BATCH_SIZE = 100
 
-BATCH_SLEEP = 0
+BATCH_SLEEP = 5
 
 CHECKPOINT_INTERVAL = 500
 
