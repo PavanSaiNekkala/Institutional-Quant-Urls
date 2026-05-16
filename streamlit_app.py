@@ -481,6 +481,51 @@ st.markdown(
     unsafe_allow_html=True
 )
 # =========================================================
+# MARKET REGIME ENGINE
+# =========================================================
+
+market_regime = "UNKNOWN"
+market_color = "#808080"
+
+try:
+
+    avg_score = filtered_df["Institutional_Score"].mean()
+
+    # Create RSI if missing
+    if "RSI" not in filtered_df.columns:
+        filtered_df["RSI"] = 50
+
+    avg_rsi = filtered_df["RSI"].replace(0, 50).mean()
+
+    # Bull Market
+    if avg_score >= 80 and avg_rsi >= 55:
+        market_regime = "BULLISH"
+        market_color = "#006400"
+
+    # Recovery Market
+    elif avg_score >= 65:
+        market_regime = "RECOVERY"
+        market_color = "#00AA00"
+
+    # Sideways
+    elif avg_score >= 50:
+        market_regime = "SIDEWAYS"
+        market_color = "#FF8C00"
+
+    # Weak
+    elif avg_score >= 35:
+        market_regime = "WEAK"
+        market_color = "#1E90FF"
+
+    # Bear Market
+    else:
+        market_regime = "BEARISH"
+        market_color = "#FF4B4B"
+
+except Exception as e:
+    print("Market regime error:", e)
+
+# =========================================================
 # EMPTY FILTER SAFETY
 # =========================================================
 
