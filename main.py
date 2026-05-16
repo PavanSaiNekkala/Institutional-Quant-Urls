@@ -1,11 +1,14 @@
 # =========================================================
 # INSTITUTIONAL QUANT PLATFORM
-# FINAL PRODUCTION MAIN.PY
+# FINAL FAST PARALLEL PRODUCTION MAIN.PY
 # =========================================================
 
-import time
 import traceback
 from pathlib import Path
+from concurrent.futures import (
+    ThreadPoolExecutor,
+    as_completed
+)
 
 import duckdb
 import numpy as np
@@ -135,16 +138,10 @@ if stock_input_df.empty:
     print("=" * 60)
 
 # =========================================================
-# PROCESS STOCKS
+# PROCESS SINGLE STOCK
 # =========================================================
 
-results = []
-
-print("=" * 60)
-print("STARTING PIPELINE")
-print("=" * 60)
-
-for idx, row in stock_input_df.iterrows():
+def process_stock(row):
 
     stock = row["Stock"]
 
@@ -156,83 +153,75 @@ for idx, row in stock_input_df.iterrows():
 
         ticker = yf.Ticker(stock)
 
-        info = ticker.info
+        # =================================================
+        # FAST INFO
+        # =================================================
+
+        try:
+
+            info = ticker.fast_info
+
+        except:
+
+            info = {}
+
+        # =================================================
+        # HISTORY
+        # =================================================
 
         hist = ticker.history(
             period="6mo",
-            auto_adjust=True
+            auto_adjust=True,
+            timeout=15
         )
 
         if hist.empty:
 
             print(f"NO HISTORY : {stock}")
 
-            continue
+            return None
 
         close_prices = hist["Close"]
 
         current_price = round(
-
             float(close_prices.iloc[-1]),
-
             2
-
         )
 
         previous_close = round(
-
             float(close_prices.iloc[-2]),
-
             2
-
         ) if len(close_prices) > 1 else current_price
 
         returns_1m = (
-
             (
                 close_prices.iloc[-1]
                 / close_prices.iloc[-22]
             ) - 1
-
             if len(close_prices) > 22
-
             else 0
-
         )
 
         returns_3m = (
-
             (
                 close_prices.iloc[-1]
                 / close_prices.iloc[-66]
             ) - 1
-
             if len(close_prices) > 66
-
             else 0
-
         )
 
         returns_6m = (
-
             (
                 close_prices.iloc[-1]
                 / close_prices.iloc[0]
             ) - 1
-
             if len(close_prices) > 1
-
             else 0
-
         )
 
         volume = info.get(
-            "volume",
-            0
-        )
-
-        avg_volume = info.get(
-            "averageVolume",
+            "lastVolume",
             0
         )
 
@@ -241,51 +230,31 @@ for idx, row in stock_input_df.iterrows():
             0
         )
 
-        pe_ratio = info.get(
-            "trailingPE",
+        day_high = info.get(
+            "dayHigh",
             0
         )
 
-        pb_ratio = info.get(
-            "priceToBook",
+        day_low = info.get(
+            "dayLow",
             0
         )
 
-        eps = info.get(
-            "trailingEps",
+        year_high = info.get(
+            "yearHigh",
             0
         )
 
-        beta = info.get(
-            "beta",
+        year_low = info.get(
+            "yearLow",
             0
         )
 
-        roe = info.get(
-            "returnOnEquity",
-            0
-        )
-
-        sector = info.get(
-            "sector",
-            "Unknown"
-        )
-
-        industry = info.get(
-            "industry",
-            "Unknown"
-        )
-
-        dividend_yield = info.get(
-            "dividendYield",
-            0
-        )
+        # =================================================
+        # INSTITUTIONAL SCORE
+        # =================================================
 
         institutional_score = 50
-
-        # =================================================
-        # INSTITUTIONAL LOGIC
-        # =================================================
 
         if market_cap > 50_000_000_000:
 
@@ -310,22 +279,6 @@ for idx, row in stock_input_df.iterrows():
         if returns_3m > 0.10:
 
             institutional_score += 10
-
-        if pe_ratio > 0 and pe_ratio < 35:
-
-            institutional_score += 5
-
-        if pb_ratio > 0 and pb_ratio < 10:
-
-            institutional_score += 5
-
-        if roe and roe > 0.15:
-
-            institutional_score += 10
-
-        if eps and eps > 0:
-
-            institutional_score += 5
 
         institutional_score = min(
             institutional_score,
@@ -367,24 +320,17 @@ for idx, row in stock_input_df.iterrows():
             trade_signal = "AVOID"
 
         composite_score = round(
-
             (
                 institutional_score
                 + confidence
                 + buy_probability
             ) / 3,
-
             2
-
         )
 
-        results.append({
+        result = {
 
             "Stock": stock,
-
-            "Sector": sector,
-
-            "Industry": industry,
 
             "Current Price": current_price,
 
@@ -392,21 +338,15 @@ for idx, row in stock_input_df.iterrows():
 
             "Volume": volume,
 
-            "Average Volume": avg_volume,
-
             "Market Cap": market_cap,
 
-            "PE Ratio": pe_ratio,
+            "Day High": day_high,
 
-            "PB Ratio": pb_ratio,
+            "Day Low": day_low,
 
-            "EPS": eps,
+            "52W High": year_high,
 
-            "ROE": roe,
-
-            "Beta": beta,
-
-            "Dividend Yield": dividend_yield,
+            "52W Low": year_low,
 
             "1M Return": round(
                 returns_1m * 100,
@@ -423,29 +363,75 @@ for idx, row in stock_input_df.iterrows():
                 2
             ),
 
-            "Institutional Score": institutional_score,
+            "Institutional Score":
+            institutional_score,
 
-            "Confidence": confidence,
+            "Confidence":
+            confidence,
 
-            "Buy Probability": buy_probability,
+            "Buy Probability":
+            buy_probability,
 
-            "Composite Score": composite_score,
+            "Composite Score":
+            composite_score,
 
-            "Trade Signal": trade_signal
+            "Trade Signal":
+            trade_signal
 
-        })
+        }
 
         print(f"SUCCESS : {stock}")
 
-        time.sleep(0.10)
+        return result
 
     except Exception as e:
 
         print(f"FAILED : {stock}")
-
         print(str(e))
 
-        continue
+        return None
+
+# =========================================================
+# FAST PARALLEL ENGINE
+# =========================================================
+
+results = []
+
+print("=" * 60)
+print("STARTING FAST PARALLEL PIPELINE")
+print("=" * 60)
+
+MAX_WORKERS = 15
+
+with ThreadPoolExecutor(
+    max_workers=MAX_WORKERS
+) as executor:
+
+    futures = [
+
+        executor.submit(
+            process_stock,
+            row
+        )
+
+        for _, row
+        in stock_input_df.iterrows()
+
+    ]
+
+    for future in as_completed(futures):
+
+        try:
+
+            result = future.result()
+
+            if result is not None:
+
+                results.append(result)
+
+        except Exception as e:
+
+            print(f"THREAD ERROR : {e}")
 
 # =========================================================
 # CREATE DATAFRAME
