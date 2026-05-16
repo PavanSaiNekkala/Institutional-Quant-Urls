@@ -338,7 +338,7 @@ filtered_df = df.copy()
 
 def generate_trade_signal(row):
 
-    score = row.get("Institutional_Score", 0)
+    score = row.get("Institutional Score", 0)
     rsi = row.get("RSI", 50)
     revenue_growth = row.get("Revenue_Growth", 0)
     institutional_change = row.get("Institutional_Change", 0)
@@ -372,7 +372,7 @@ def generate_trade_signal(row):
         return "AVOID"
 
 
-filtered_df["Trade_Signal"] = filtered_df.apply(
+filtered_df["Trade Signal"] = filtered_df.apply(
     generate_trade_signal,
     axis=1
 )
@@ -481,73 +481,63 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# =========================================================
-# SAFE SCORE
-# =========================================================
+# ============================================================
+# MARKET REGIME ENGINE
+# ============================================================
 
-avg_score = 0
+market_regime = "SIDEWAYS"
+market_color = "#808080"
 
-if "Institutional_Score" in filtered_df.columns:
+try:
 
-    avg_score = round(
-        pd.to_numeric(
-            filtered_df["Institutional_Score"],
-            errors="coerce"
-        ).fillna(0).mean(),
-        2
-    )
+        avg_score = float(
+                filtered_df["Institutional Score"].mean()
+        )
 
-# =========================================================
-# SAFE RSI
-# =========================================================
+        # SAFE RSI HANDLING
+        if "RSI" not in filtered_df.columns:
 
-if "RSI" not in filtered_df.columns:
+                filtered_df["RSI"] = 55
 
-    filtered_df["RSI"] = 55
+        filtered_df["RSI"] = pd.to_numeric(
 
-filtered_df["RSI"] = (
-    pd.to_numeric(
-        filtered_df["RSI"],
-        errors="coerce"
-    )
-    .fillna(55)
-    .replace(0, 55)
-)
+                filtered_df["RSI"],
+                errors="coerce"
 
-avg_rsi = round(filtered_df["RSI"].mean(), 2)
+        ).fillna(55)
 
-# =========================================================
-# MARKET REGIME LOGIC
-# =========================================================
+        avg_rsi = float(
+                filtered_df["RSI"].mean()
+        )
 
-# =========================================================
-# MARKET REGIME LOGIC
-# =========================================================
+        # MARKET LOGIC
+        if avg_score >= 80 and avg_rsi >= 55:
 
-if avg_score >= 85:
+                market_regime = "BULLISH"
+                market_color = "#006400"
 
-        market_regime = "BULLISH"
-        market_color = "#006400"
+        elif avg_score >= 65:
 
-elif avg_score >= 70:
+                market_regime = "ACCUMULATION"
+                market_color = "#228B22"
 
-        market_regime = "RECOVERY"
-        market_color = "#00AA00"
+        elif avg_score >= 50:
 
-elif avg_score >= 55:
+                market_regime = "SIDEWAYS"
+                market_color = "#FF8C00"
+
+        else:
+
+                market_regime = "BEARISH"
+                market_color = "#FF0000"
+
+except Exception as e:
+
+        print(f"Market regime error: {e}")
 
         market_regime = "SIDEWAYS"
-        market_color = "#FF8C00"
+        market_color = "#808080"
 
-elif avg_score >= 40:
-
-        market_regime = "WEAK"
-        market_color = "#1E90FF"
-
-else:
-
-        market_regime = "BEARISH"
-        market_color = "#FF4B4B"
 # =========================================================
 # EMPTY FILTER SAFETY
 # =========================================================
@@ -731,18 +721,7 @@ else:
 
         st.info("No sector leaders available.")
 
-        by="Sector Percentile",
 
-        ascending=False
-
-st.dataframe(
-
-        sector_leaders,
-
-        width="stretch",
-        height=400
-
-)
 st.markdown("---")
 
 st.subheader(
@@ -774,14 +753,6 @@ else:
 
         st.info("No elite stocks available.")
 
-st.dataframe(
-
-        elite_df,
-
-        width="stretch",
-        height=400
-
-)
 st.markdown("---")
 
 st.subheader(
