@@ -820,7 +820,94 @@ final_df = (
     .reset_index(drop=True)
 
 )
+# =========================================================
+# SECTOR RELATIVE STRENGTH
+# =========================================================
 
+if "Sector" in final_df.columns:
+
+        final_df["Sector Rank"] = (
+
+                final_df
+
+                .groupby("Sector")[
+                        "Institutional Score"
+                ]
+
+                .rank(
+
+                        ascending=False,
+
+                        method="dense"
+
+                )
+
+        )
+
+        final_df["Sector Percentile"] = (
+
+                final_df
+
+                .groupby("Sector")[
+                        "Institutional Score"
+                ]
+
+                .rank(
+                        pct=True
+                ) * 100
+
+        ).round(2)
+# =========================================================
+# MARKET LEADER
+# =========================================================
+
+final_df["Market Leader"] = np.where(
+
+        (
+                final_df[
+                        "Sector Percentile"
+                ] >= 90
+        ),
+
+        "YES",
+
+        "NO"
+
+)
+# =========================================================
+# RELATIVE STRENGTH SCORE
+# =========================================================
+
+final_df["Relative Strength Score"] = (
+
+        (
+                final_df["1M Return"] * 0.3
+                +
+                final_df["3M Return"] * 0.3
+                +
+                final_df["6M Return"] * 0.4
+        )
+
+).round(2)
+# =========================================================
+# ELITE STOCKS
+# =========================================================
+
+final_df["Elite Stock"] = np.where(
+
+        (
+                (final_df["Institutional Score"] >= 85)
+                &
+                (final_df["Relative Strength Score"] >= 15)
+                &
+                (final_df["Trade Signal"] == "STRONG BUY")
+        ),
+
+        "YES",
+
+        "NO"
+
+)
 # =========================================================
 # SORTING
 # =========================================================
