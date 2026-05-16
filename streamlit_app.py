@@ -551,6 +551,94 @@ st.dataframe(
 
 )
 
+st.markdown("---")
+
+st.subheader(
+        "🏆 Sector Leaders"
+)
+
+sector_leaders = filtered_df[
+
+        filtered_df["Market Leader"]
+        == "YES"
+
+].sort_values(
+
+        by="Sector Percentile",
+
+        ascending=False
+
+)
+
+st.dataframe(
+
+        sector_leaders,
+
+        use_container_width=True,
+        height=400
+
+)
+st.markdown("---")
+
+st.subheader(
+        "🚀 Elite Institutional Stocks"
+)
+
+elite_df = filtered_df[
+
+        filtered_df["Elite Stock"]
+        == "YES"
+
+]
+
+st.dataframe(
+
+        elite_df,
+
+        use_container_width=True,
+        height=400
+
+)
+st.markdown("---")
+
+st.subheader(
+        "🔥 Sector Strength Heatmap"
+)
+
+sector_strength = (
+
+        filtered_df
+
+        .groupby("Sector")[
+                "Institutional Score"
+        ]
+
+        .mean()
+
+        .reset_index()
+
+)
+
+heatmap = px.treemap(
+
+        sector_strength,
+
+        path=["Sector"],
+
+        values="Institutional Score",
+
+        color="Institutional Score"
+
+)
+
+st.plotly_chart(
+
+        heatmap,
+
+        use_container_width=True
+
+)
+
 # =========================================================
 # RSI HEATMAP
 # =========================================================
@@ -641,7 +729,12 @@ display_columns = [
         "ATR",
         "1M Return",
         "3M Return",
-        "6M Return"
+        "6M Return",
+        "Sector Rank",
+        "Sector Percentile",
+        "Relative Strength Score",
+        "Market Leader",
+        "Elite Stock"
 
 ]
 
