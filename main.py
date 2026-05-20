@@ -17,7 +17,11 @@ import pandas as pd
 import yfinance as yf
 
 from ta.momentum import RSIIndicator
-from ta.trend import SMAIndicator, MACD
+from ta.trend import (
+    SMAIndicator,
+    EMAIndicator,
+    MACD
+)
 from ta.volatility import AverageTrueRange
 
 warnings.filterwarnings("ignore")
@@ -210,6 +214,43 @@ def classify_signal(confidence):
         return "AVOID"
 
 # =========================================================
+# NIFTY BENCHMARK
+# =========================================================
+
+NIFTY_SYMBOL = "^NSEI"
+
+try:
+
+    nifty_hist = yf.download(
+        NIFTY_SYMBOL,
+        period="6mo",
+        interval="1d",
+        progress=False,
+        auto_adjust=True,
+        threads=False
+    )
+
+    nifty_close = nifty_hist["Close"]
+
+    nifty_return_3m = (
+
+        (
+            nifty_close.iloc[-1]
+            /
+            nifty_close.iloc[-66]
+        ) - 1
+
+        if len(nifty_close) > 66
+
+        else 0
+
+    )
+
+except Exception:
+
+    nifty_return_3m = 0
+    
+# =========================================================
 # PROCESS STOCK
 # =========================================================
 
@@ -331,6 +372,16 @@ def process_stock(row):
             close_prices
         ).macd().iloc[-1]
 
+        ema_21 = EMAIndicator(
+            close_prices,
+            window=21
+        ).ema_indicator().iloc[-1]
+
+        ema_50 = EMAIndicator(
+            close_prices,
+            window=50
+        ).ema_indicator().iloc[-1]
+
         atr = AverageTrueRange(
             high=hist["High"],
             low=hist["Low"],
@@ -352,6 +403,12 @@ def process_stock(row):
 
         if pd.isna(macd):
             macd = 0
+            
+        if pd.isna(ema_21):
+            ema_21 = current_price
+
+        if pd.isna(ema_50):
+            ema_50 = current_price
 
         if pd.isna(atr):
             atr = current_price * 0.02
@@ -379,6 +436,14 @@ def process_stock(row):
              close_prices.iloc[0]) - 1
             if len(close_prices) > 1
             else 0
+        )
+        
+        # ============================================
+        # RELATIVE STRENGTH VS NIFTY
+        # ============================================
+
+        relative_strength = (
+            returns_3m - nifty_return_3m
         )
 
         # =================================================
@@ -465,6 +530,12 @@ def process_stock(row):
 
         if current_price > sma_50:
             institutional_score += 5
+            
+        if current_price > ema_21:
+            institutional_score += 5
+
+        if ema_21 > ema_50:
+            institutional_score += 5
 
         if macd > 0:
             institutional_score += 5
@@ -507,6 +578,53 @@ def process_stock(row):
             0,
             min(institutional_score, 100)
         )
+        # ============================================
+        # RELATIVE STRENGTH SCORING
+        # ============================================
+
+        if relative_strength > 0.20:
+            institutional_score += 15
+
+        elif relative_strength > 0.10:
+            institutional_score += 10
+
+        elif relative_strength > 0.05:
+            institutional_score += 5
+
+        elif relative_strength < -0.05:
+            institutional_score -= 10
+            
+        # ============================================
+        # MOMENTUM ACCELERATION
+        # ============================================
+
+        momentum_acceleration = (
+            returns_1m - (returns_3m / 3)
+        )
+
+        if momentum_acceleration > 0.03:
+            institutional_score += 10
+
+        elif momentum_acceleration < -0.03:
+            institutional_score -= 10
+            
+        # ============================================
+        # VOLUME BREAKOUT
+        # ============================================
+
+        avg_volume = hist["Volume"].tail(20).mean()
+
+        relative_volume = (
+            volume / avg_volume
+            if avg_volume > 0
+            else 1
+        )
+
+        if relative_volume > 2:
+            institutional_score += 10
+
+        elif relative_volume > 1.5:
+            institutional_score += 5
 
         # =================================================
         # MARKET REGIME
@@ -551,6 +669,9 @@ def process_stock(row):
             confidence
         )
 
+        if volume < 100000:
+            trade_signal = "AVOID"
+
         if (
             market_regime == "BULLISH" and
             confidence >= 85 and
@@ -576,6 +697,36 @@ def process_stock(row):
             2
         )
 
+        # ============================================
+        # POSITION SIZE
+        # ============================================
+
+        if confidence >= 90:
+            position_size = "FULL"
+
+        elif confidence >= 75:
+            position_size = "HALF"
+
+        elif confidence >= 60:
+            position_size = "SMALL"
+
+        else:
+            position_size = "AVOID"
+
+
+        # ============================================
+        # RISK ENGINE
+        # ============================================
+
+        if volatility_ratio > 0.08:
+            risk_level = "HIGH"
+
+        elif volatility_ratio > 0.04:
+            risk_level = "MEDIUM"
+
+        else:
+            risk_level = "LOW"
+            
         logger.info(f"SUCCESS : {stock}")
 
         return {
@@ -624,6 +775,12 @@ def process_stock(row):
             "SMA50":
             round(sma_50, 2),
 
+            "EMA21":
+            round(ema_21, 2),
+
+            "EMA50":
+            round(ema_50, 2),
+
             "MACD":
             round(macd, 2),
 
@@ -632,6 +789,15 @@ def process_stock(row):
 
             "Volatility Ratio":
             round(volatility_ratio, 4),
+            
+            "Relative Strength":
+            round(relative_strength * 100, 2),
+
+            "Momentum Acceleration":
+            round(momentum_acceleration * 100, 2),
+
+            "Relative Volume":
+            round(relative_volume, 2),
 
             "Trend Strength":
             round(trend_strength, 2),
@@ -654,9 +820,14 @@ def process_stock(row):
             "Composite Score":
             composite_score,
 
+            "Position Size":
+            position_size,
+
+            "Risk Level":
+            risk_level,
+            
             "Trade Signal":
             trade_signal
-        }
 
     except Exception as e:
 
