@@ -12,11 +12,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import duckdb
 import numpy as np
 import pandas as pd
-import requests
 import yfinance as yf
 
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
 from ta.momentum import RSIIndicator
 from ta.trend import SMAIndicator, MACD
 from ta.volatility import AverageTrueRange
@@ -56,66 +53,6 @@ INPUT_XLSX = (
     INPUT_DIR /
     "yfinance_stock_urls.xlsx"
 )
-
-# =========================================================
-# REQUEST SESSION
-# =========================================================
-
-HEADERS = {
-
-    "User-Agent": (
-
-        "Mozilla/5.0 "
-        "(Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 "
-        "(KHTML, like Gecko) "
-        "Chrome/120.0 Safari/537.36"
-
-    )
-
-}
-
-def create_session():
-
-    session = requests.Session()
-
-    retries = Retry(
-
-        total=3,
-
-        backoff_factor=1,
-
-        status_forcelist=[
-            429,
-            500,
-            502,
-            503,
-            504
-        ]
-
-    )
-
-    adapter = HTTPAdapter(
-        max_retries=retries
-    )
-
-    session.mount(
-        "https://",
-        adapter
-    )
-
-    session.mount(
-        "http://",
-        adapter
-    )
-
-    session.headers.update(
-        HEADERS
-    )
-
-    return session
-
-SESSION = create_session()
 
 # =========================================================
 # LOAD XLSX INPUT
@@ -278,13 +215,36 @@ def process_stock(row):
         print(f"PROCESSING : {stock}")
         print("=" * 60)
 
-        time.sleep(0.15)
+        time.sleep(0.6)
 
-        ticker = yf.Ticker(
-            stock,
-            session=SESSION
-        )
+        ticker = yf.Ticker(stock)
 
+        try:
+
+            info = ticker.fast_info
+
+        except Exception:
+
+            info = {}
+
+        try:
+
+            hist = ticker.history(
+                period="6mo",
+                interval="1d",
+                auto_adjust=True,
+                repair=True
+            )
+
+        except Exception:
+
+            print(f"HISTORY FAILED : {stock}")
+            return None
+
+        if hist.empty:
+
+            print(f"NO HISTORY : {stock}")
+            return None
         # =================================================
         # FAST INFO
         # =================================================
@@ -303,15 +263,12 @@ def process_stock(row):
 
         try:
 
-            hist = ticker.history(
-
-                period="6mo",
-
-                auto_adjust=True,
-
-                timeout=20
-
-            )
+           hist = ticker.history(
+               period="6mo",
+               interval="1d",
+               auto_adjust=True,
+               repair=True
+           )
 
         except Exception:
 
@@ -738,7 +695,7 @@ print("STARTING FAST PARALLEL PIPELINE")
 print("=" * 60)
 
 MAX_WORKERS = min(
-    25,
+    5,
     len(stock_input_df)
 )
 
